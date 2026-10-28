@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { drawHand } from '../lib/drawHand'
 import { createHandTracker } from '../lib/handTracker'
 import { matchHands, normalize, type DetectedHand, type Match } from '../lib/landmarks'
+import { detectMotion, toHandPoint, WINDOW_MS, type Sample } from '../lib/motion'
 import type { Sign } from '../lib/signs'
 
 /** Score à partir duquel le signe est considéré comme juste. */
@@ -11,6 +12,10 @@ export const SUCCESS_SCORE = 0.7
 const SUCCESS_FRAMES = 15
 /** En dessous de ce score, on considère que le signe est relâché : une nouvelle validation devient possible. */
 const RELEASE_SCORE = 0.4
+/** Après un mouvement validé, on attend un peu avant d'en accepter un autre. */
+const MOTION_COOLDOWN_MS = 1200
+/** Durée de la trajectoire dessinée à l'écran. */
+const TRAIL_MS = 1500
 
 export type Status = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -30,6 +35,8 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
   const onSuccessRef = useRef(onSuccess)
   const armedRef = useRef(true)
   const goodFramesRef = useRef(0)
+  const samplesRef = useRef<Sample[]>([])
+  const lastMotionRef = useRef(0)
 
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState('')
@@ -45,6 +52,8 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
   useEffect(() => {
     armedRef.current = true
     goodFramesRef.current = 0
+    samplesRef.current = []
+    lastMotionRef.current = performance.now()
   }, [targetId])
 
   useEffect(() => {
@@ -74,7 +83,8 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
           if (stop) return
           if (video.currentTime !== lastTime) {
             lastTime = video.currentTime
-            const result = tracker!.detectForVideo(video, performance.now())
+            const now = performance.now()
+            const result = tracker!.detectForVideo(video, now)
             canvas.width = video.videoWidth
             canvas.height = video.videoHeight
             ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -87,17 +97,36 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
               return { landmarks, shape: normalize(landmarks, handedness) }
             })
 
+            // Mémoire des positions : sert à reconnaître les mouvements.
+            const samples = samplesRef.current
             if (detected.length > 0) {
+              samples.push({ t: now, hands: detected.map((h) => toHandPoint(h.landmarks)) })
+              while (samples.length > 0 && now - samples[0].t > WINDOW_MS) samples.shift()
+            } else {
+              samples.length = 0
+            }
 
+            if (detected.length > 0) {
               const t = targetRef.current
               if (t) {
-                const match = matchHands(detected, t)
-                if (match.score < RELEASE_SCORE) armedRef.current = true
-                goodFramesRef.current = armedRef.current && match.score >= SUCCESS_SCORE ? goodFramesRef.current + 1 : 0
-                if (goodFramesRef.current >= SUCCESS_FRAMES) {
-                  armedRef.current = false
-                  goodFramesRef.current = 0
-                  onSuccessRef.current()
+                const match = t.ignoreShape ? null : matchHands(detected, t)
+
+                if (t.move) {
+                  drawTrail(ctx, samples, now, canvas.width, canvas.height)
+                  const shapeOk = !match || match.score >= SUCCESS_SCORE
+                  if (shapeOk && now - lastMotionRef.current > MOTION_COOLDOWN_MS && detectMotion(samples, t.move, now)) {
+                    lastMotionRef.current = now
+                    samples.length = 0
+                    onSuccessRef.current()
+                  }
+                } else if (match) {
+                  if (match.score < RELEASE_SCORE) armedRef.current = true
+                  goodFramesRef.current = armedRef.current && match.score >= SUCCESS_SCORE ? goodFramesRef.current + 1 : 0
+                  if (goodFramesRef.current >= SUCCESS_FRAMES) {
+                    armedRef.current = false
+                    goodFramesRef.current = 0
+                    onSuccessRef.current()
+                  }
                 }
                 setLive({ hand: true, match })
               } else {
@@ -128,4 +157,19 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
   }, [enabled])
 
   return { videoRef, canvasRef, status, error, live }
+}
+
+/** Dessine la trajectoire récente de la main : l'élève voit ce que la caméra suit. */
+function drawTrail(ctx: CanvasRenderingContext2D, samples: Sample[], now: number, width: number, height: number) {
+  const points = samples.filter((s) => now - s.t <= TRAIL_MS && s.hands.length > 0).map((s) => s.hands[0])
+  if (points.length < 2) return
+  ctx.save()
+  ctx.strokeStyle = '#f97316'
+  ctx.lineWidth = 5
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x * width, p.y * height) : ctx.lineTo(p.x * width, p.y * height)))
+  ctx.stroke()
+  ctx.restore()
 }

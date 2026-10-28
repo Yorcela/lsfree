@@ -1,23 +1,34 @@
-const KEY = 'lsfree.done'
+const KEY = 'lsfree.stars'
+/** Ancienne clé : liste des leçons terminées, avant l'arrivée des étoiles. */
+const LEGACY_KEY = 'lsfree.done'
 
-/** Identifiants des leçons terminées, gardés dans le navigateur. */
-export function loadDone(): string[] {
+/** Étoiles gagnées (0 à 3) pour chaque leçon, gardées dans le navigateur. */
+export type StarsMap = Record<string, number>
+
+function read<T>(key: string, fallback: T): T {
   try {
-    const value = JSON.parse(localStorage.getItem(KEY) ?? '[]')
-    return Array.isArray(value) ? value : []
+    return JSON.parse(localStorage.getItem(key) ?? '') as T
   } catch {
-    return []
+    return fallback
   }
 }
 
-export function markDone(id: string): string[] {
-  const done = loadDone()
-  if (done.includes(id)) return done
-  const next = [...done, id]
+export function loadStars(): StarsMap {
+  const stars = read<StarsMap>(KEY, {})
+  const legacy = read<string[]>(LEGACY_KEY, [])
+  // Une leçon déjà terminée avant les étoiles vaut au moins une étoile.
+  for (const id of Array.isArray(legacy) ? legacy : []) stars[id] = Math.max(stars[id] ?? 0, 1)
+  return stars
+}
+
+/** Garde le meilleur résultat de la leçon. */
+export function saveStars(id: string, stars: number): StarsMap {
+  const all = loadStars()
+  all[id] = Math.max(all[id] ?? 0, stars)
   try {
-    localStorage.setItem(KEY, JSON.stringify(next))
+    localStorage.setItem(KEY, JSON.stringify(all))
   } catch {
     // stockage indisponible : la progression ne sera pas gardée
   }
-  return next
+  return all
 }

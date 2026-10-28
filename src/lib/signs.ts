@@ -1,4 +1,5 @@
 import type { FingerValues, SignSpec } from './landmarks'
+import type { MotionSpec } from './motion'
 
 /** Une main dessinée dans une illustration. */
 export interface HandDrawing {
@@ -11,8 +12,12 @@ export interface Sign extends SignSpec {
   label: string
   /** Description du signe, utilisée comme indice. */
   hint: string
-  /** Signe qui comporte un mouvement : la caméra ne le vérifie pas, l'élève valide lui-même. */
+  /** Signe qui comporte un mouvement : l'élève peut toujours le valider lui-même. */
   motion?: boolean
+  /** Mouvement suivi par la caméra ; sans lui, seul le bouton de validation existe. */
+  move?: MotionSpec
+  /** La forme de la main n'est pas vérifiée : seul le mouvement compte. */
+  ignoreShape?: boolean
   /** Mains à dessiner : présent pour les signes sans photo (chiffres et nombres). */
   hands?: HandDrawing[]
   /** Mouvement à montrer sur l'illustration. */
@@ -35,12 +40,12 @@ export const CONSONANTS: Sign[] = [
   { id: 'f', label: 'F', hint: "Le pouce et l'index se touchent en cercle, les trois autres doigts sont tendus et écartés.", fingers: [0.5, 0.5, 1, 1, 1], pinch: true },
   { id: 'g', label: 'G', hint: 'Index tendu vers le haut, les autres doigts et le pouce repliés.', fingers: [0.1, 1, 0, 0, 0] },
   { id: 'h', label: 'H', hint: 'Index et auriculaire tendus, majeur et annulaire repliés.', fingers: [0.1, 1, 0, 0, 1] },
-  { id: 'j', label: 'J', hint: 'Suis les flèches de la photo : la main trace un « J » dans l\'air.', fingers: [0, 0, 0, 0, 0], motion: true },
+  { id: 'j', label: 'J', hint: 'Suis les flèches de la photo : la main trace un « J » dans l\'air.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'j' }, ignoreShape: true },
   { id: 'k', label: 'K', hint: 'Index et majeur tendus, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0] },
   { id: 'l', label: 'L', hint: 'Index et pouce tendus à angle droit, autres doigts repliés.', fingers: [0.9, 1, 0, 0, 0] },
   { id: 'm', label: 'M', hint: "Main à plat, à l'horizontale, doigts tendus et serrés, pouce replié.", fingers: [0.1, 1, 1, 1, 1], orientation: 'side' },
   { id: 'n', label: 'N', hint: "Index et majeur tendus et serrés, à l'horizontale, autres doigts repliés.", fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'side' },
-  { id: 'p', label: 'P', hint: 'Suis la flèche de la photo : la main à plat pivote vers le bas.', fingers: [0, 0, 0, 0, 0], motion: true },
+  { id: 'p', label: 'P', hint: 'Suis la flèche de la photo : la main à plat pivote vers le bas.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'pivot-down' }, ignoreShape: true },
   { id: 'q', label: 'Q', hint: 'Index pointé vers le bas, autres doigts repliés.', fingers: [0.1, 1, 0, 0, 0], orientation: 'down' },
   { id: 'r', label: 'R', hint: 'Index et majeur croisés, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'up' },
   { id: 's', label: 'S', hint: 'Poing fermé, pouce replié devant les doigts.', fingers: [0.2, 0, 0, 0, 0] },
@@ -48,7 +53,7 @@ export const CONSONANTS: Sign[] = [
   { id: 'v', label: 'V', hint: 'Index et majeur tendus et écartés en « V », autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0], spread: 'wide' },
   { id: 'w', label: 'W', hint: 'Index, majeur et annulaire tendus et écartés, pouce et auriculaire repliés.', fingers: [0.1, 1, 1, 1, 0] },
   { id: 'x', label: 'X', hint: 'Index et majeur recourbés en crochet, autres doigts repliés.', fingers: [0.1, 0.5, 0.5, 0, 0] },
-  { id: 'z', label: 'Z', hint: 'Poing, pouce levé : la main trace un « Z » dans l\'air.', fingers: [0, 0, 0, 0, 0], motion: true },
+  { id: 'z', label: 'Z', hint: 'Poing, pouce levé : la main trace un « Z » dans l\'air.', fingers: [0.8, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'z' } },
 ]
 
 const ONE: FingerValues = [0.8, 0, 0, 0, 0]
@@ -97,6 +102,8 @@ export const NUMBERS: Sign[] = [
     hint: "Les deux mains forment un cercle (pouce et index qui se touchent, autres doigts dépliés) et se rapprochent l'une de l'autre.",
     fingers: NO_FINGERS,
     motion: true,
+    move: { kind: 'together' },
+    ignoreShape: true,
     hands: [hand([0.5, 0.5, 1, 1, 1], true), hand([0.5, 0.5, 1, 1, 1], true)],
     arrow: 'together',
   },
@@ -106,6 +113,7 @@ export const NUMBERS: Sign[] = [
     hint: `Comme le ${digit}, mais la main monte d'un petit coup vers le haut.`,
     fingers,
     motion: true,
+    move: { kind: 'up' },
     hands: [hand(fingers)],
     arrow: 'up',
   })),
@@ -114,7 +122,9 @@ export const NUMBERS: Sign[] = [
     label: id,
     hint: `Comme le ${Number(digit) + 5} avec les deux mains, mais elles descendent d'un petit coup.`,
     fingers: FIVE,
+    second: { fingers },
     motion: true,
+    move: { kind: 'down' },
     hands: [hand(fingers), hand(FIVE)],
     arrow: 'down',
   })),

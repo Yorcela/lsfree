@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { SUCCESS_SCORE, useHandTracking, type Live } from '../hooks/useHandTracking'
 import type { Lesson } from '../lib/lessons'
 import { HandIllustration } from './HandIllustration'
+import { ProgressBar } from './ProgressBar'
+import { Stars } from './Stars'
 import { REPETITIONS, type Sign } from '../lib/signs'
 
 type Phase = 'intro' | 'learn' | 'quizIntro' | 'quiz' | 'result'
@@ -15,6 +17,14 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
   ok: 'Réussi seul',
   hint: 'Réussi avec indice',
   skipped: 'Passé',
+}
+
+/** Étoiles de l'interro : 3 si presque tout est réussi seul, 2 si environ la moitié (un indice compte pour demi), 1 sinon. */
+function starsFor(answers: Answer[]): number {
+  if (answers.length === 0) return 0
+  const points = answers.reduce((sum, a) => sum + (a.outcome === 'ok' ? 1 : a.outcome === 'hint' ? 0.5 : 0), 0)
+  const ratio = points / answers.length
+  return ratio >= 0.9 ? 3 : ratio >= 0.5 ? 2 : 1
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -52,7 +62,7 @@ function feedbackFor(live: Live, flash: boolean, detailed: boolean): string {
 interface Props {
   lesson: Lesson
   onExit: () => void
-  onFinished: (lessonId: string) => void
+  onFinished: (lessonId: string, stars: number) => void
 }
 
 export function LessonRunner({ lesson, onExit, onFinished }: Props) {
@@ -70,15 +80,15 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   const flashTimer = useRef<number | undefined>(undefined)
 
   const current = phase === 'learn' ? learnSequence[pos] : phase === 'quiz' ? order[question] : undefined
-  // Les signes avec mouvement ne sont pas détectés : l'élève valide lui-même.
-  const target = current && !current.motion ? current : null
+  // Un signe à mouvement sans suivi prévu se valide à la main ; sinon la caméra le suit.
+  const target = current && (!current.motion || current.move) ? current : null
   const cameraOn = phase === 'learn' || phase === 'quizIntro' || phase === 'quiz'
 
   useEffect(() => () => window.clearTimeout(flashTimer.current), [])
 
   useEffect(() => {
-    if (phase === 'result') onFinished(lesson.id)
-  }, [phase, lesson.id, onFinished])
+    if (phase === 'result') onFinished(lesson.id, starsFor(answers))
+  }, [phase, answers, lesson.id, onFinished])
 
   const showFlash = () => {
     setFlash(true)
@@ -125,7 +135,13 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   const detailed = !inQuiz || hintLevel > 0
   const score = live.match?.score ?? 0
   const feedback = current?.motion
-    ? 'Ce signe comporte un mouvement : la caméra ne peut pas le vérifier. Fais-le, puis valide.'
+    ? flash
+      ? 'Bravo !'
+      : !current.move
+        ? 'Ce signe comporte un mouvement : la caméra ne peut pas le vérifier. Fais-le, puis valide.'
+        : live.hand
+          ? "Fais le geste, la caméra le suit (trait orange). Si elle ne le voit pas, clique sur « J'ai fait le signe »."
+          : 'Montre ta main devant la caméra.'
     : target
       ? feedbackFor(live, flash, detailed)
       : ''
@@ -153,7 +169,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             <button type="button" className="primary" onClick={startLearning}>
               Commencer
             </button>
-            <button type="button" onClick={onExit}>
+            <button type="button" className="ghost" onClick={onExit}>
               Retour au menu
             </button>
           </div>
@@ -162,7 +178,8 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
 
       {phase === 'result' && (
         <section className="card result">
-          <h2>Résultat de l'interro</h2>
+          <h2>Interro terminée !</h2>
+          <Stars count={starsFor(answers)} size={56} />
           <p className="big-score">
             {answers.filter((a) => a.outcome === 'ok').length} / {answers.length} sans aide
           </p>
@@ -177,10 +194,10 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             <button type="button" className="primary" onClick={startQuiz}>
               Refaire l'interro
             </button>
-            <button type="button" onClick={startLearning}>
+            <button type="button" className="ghost" onClick={startLearning}>
               Revoir le cours
             </button>
-            <button type="button" onClick={onExit}>
+            <button type="button" className="ghost" onClick={onExit}>
               Retour au menu
             </button>
           </div>
@@ -194,6 +211,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               <h2>
                 Tour {Math.floor(pos / signs.length) + 1} sur {REPETITIONS}
               </h2>
+              <ProgressBar value={pos / learnSequence.length} label="Progression de la leçon" />
               <div className="chips" aria-label="Signes de ce tour">
                 {signs.map((s, i) => {
                   const inRound = pos % signs.length
@@ -208,7 +226,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               <Photo sign={current} />
               <p>{current.hint}</p>
               <div className="actions center">
-                <button type="button" onClick={nextLearn}>
+                <button type="button" className={current.motion ? undefined : 'ghost'} onClick={nextLearn}>
                   {current.motion ? "J'ai fait le signe" : 'Signe suivant'}
                 </button>
               </div>
@@ -233,13 +251,14 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               <h2>
                 Question {question + 1} sur {order.length}
               </h2>
+              <ProgressBar value={question / order.length} label="Progression de l'interro" />
               <p>Fais le signe de</p>
               <div className="sign-label">{current.label}</div>
               {hintLevel >= 1 && <p className="hint">Indice : {current.hint}</p>}
               {hintLevel >= 2 && <Photo sign={current} />}
               <div className="actions center">
                 {hintLevel < 2 && (
-                  <button type="button" onClick={() => setHintLevel(hintLevel + 1)}>
+                  <button type="button" className="warn" onClick={() => setHintLevel(hintLevel + 1)}>
                     {hintLevel === 0 ? 'Un indice ?' : 'Encore un indice'}
                   </button>
                 )}
@@ -248,7 +267,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
                     J'ai fait le signe
                   </button>
                 )}
-                <button type="button" onClick={() => finishQuestion('skipped')}>
+                <button type="button" className="ghost" onClick={() => finishQuestion('skipped')}>
                   Passer
                 </button>
               </div>
@@ -263,7 +282,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             {status === 'loading' && <div className="overlay">Chargement du suivi de la main…</div>}
             {status === 'error' && <div className="overlay error">Caméra indisponible : {error}</div>}
           </div>
-          {detailed && target && (
+          {detailed && target && !current?.motion && (
             <div className="meter" aria-label="Précision du signe">
               <div
                 className={`meter-bar ${score >= SUCCESS_SCORE ? 'good' : ''}`}
