@@ -1,0 +1,187 @@
+:root {
+  --text: #4b4557;
+  --text-h: #08060d;
+  --bg: #faf9fc;
+  --card: #fff;
+  --border: #e5e4e7;
+  --accent: #7c3aed;
+  --good: #16a34a;
+  font: 16px/150% system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #a8a3b5;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --card: #1f2028;
+    --border: #2e303a;
+    --accent: #a78bfa;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 40px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  color: var(--text-h);
+  font-size: 20px;
+}
+
+.subtitle {
+  margin: 4px 0 24px;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 16px;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .stage {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.reference {
+  text-align: center;
+}
+
+.sign-label {
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  margin: 8px 0;
+}
+
+.sign-image {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.credits {
+  margin-top: 24px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.credits a {
+  color: var(--accent);
+}
+
+.video-wrap {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 4 / 3;
+}
+
+/* Effet miroir : la vidéo et le tracé sont retournés ensemble. */
+.video-wrap video,
+.video-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.overlay.error {
+  color: #fecaca;
+}
+
+.meter {
+  height: 10px;
+  margin-top: 12px;
+  border-radius: 5px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.meter-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s;
+}
+
+.meter-bar.good {
+  background: var(--good);
+}
+
+.feedback {
+  margin: 12px 0;
+  min-height: 3em;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.progress {
+  margin-top: 16px;
+}
