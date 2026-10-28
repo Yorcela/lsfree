@@ -2,12 +2,12 @@ import type { Sign } from '../lib/signs'
 
 const FINGER_X = [38, 48.5, 59, 69.5]
 
-/** Une main vue de face, dessinée à partir du dépliement de chaque doigt. */
-function Hand({ fingers, pinch }: { fingers: Sign['fingers']; pinch?: boolean }) {
+/** Les formes d'une main vue de face (repère 100 × 130), à placer dans un <svg> ou un <g>. */
+export function HandGlyph({ fingers, pinch }: { fingers: Sign['fingers']; pinch?: boolean }) {
   const [thumb, ...others] = fingers
   const thumbOut = thumb > 0.4
   return (
-    <svg className="hand-svg" viewBox="0 0 100 130" aria-hidden="true">
+    <>
       {others.map((ext, i) => {
         const length = (14 + ext * 44) * (i === 3 ? 0.85 : 1)
         return <rect key={i} x={FINGER_X[i] - 4.5} y={72 - length} width={9} height={length + 8} rx={4.5} />
@@ -22,6 +22,15 @@ function Hand({ fingers, pinch }: { fingers: Sign['fingers']; pinch?: boolean })
         <ellipse cx={46} cy={96} rx={11} ry={6} />
       )}
       {pinch && <circle className="pinch" cx={36} cy={50} r={10} />}
+    </>
+  )
+}
+
+/** Une main dessinée à partir du dépliement de chaque doigt. */
+function Hand({ fingers, pinch }: { fingers: Sign['fingers']; pinch?: boolean }) {
+  return (
+    <svg className="hand-svg" viewBox="0 0 100 130" aria-hidden="true">
+      <HandGlyph fingers={fingers} pinch={pinch} />
     </svg>
   )
 }

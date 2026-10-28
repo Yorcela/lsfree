@@ -70,6 +70,8 @@ export interface SignSpec {
   orientation?: Orientation
   /** Signe à deux mains : ce que fait l'autre main (les deux mains sont montrées à la caméra). */
   second?: SignSpec
+  /** Doigts qu'on ne compare pas (0 = pouce … 4 = auriculaire), quand leur position est trop ambiguë pour la caméra. */
+  ignore?: number[]
 }
 
 /** Noms des doigts, dans l'ordre de FingerValues. */
@@ -92,10 +94,11 @@ export interface Match {
 
 export function matchSign(shape: HandShape, spec: SignSpec, landmarks: Point[]): Match {
   const values = fingerValues(shape)
-  const candidates: { diff: number; advice: string }[] = values.map((v, i) => ({
-    diff: Math.abs(v - spec.fingers[i]),
-    advice: `${v < spec.fingers[i] ? 'Déplie' : 'Replie'} ${PARTS[i]}.`,
-  }))
+  const candidates: { diff: number; advice: string }[] = values.flatMap((v, i) =>
+    spec.ignore?.includes(i)
+      ? []
+      : [{ diff: Math.abs(v - spec.fingers[i]), advice: `${v < spec.fingers[i] ? 'Déplie' : 'Replie'} ${PARTS[i]}.` }],
+  )
 
   if (spec.pinch !== undefined) {
     const p = pinchDistance(shape)

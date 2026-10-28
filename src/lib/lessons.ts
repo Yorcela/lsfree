@@ -1,4 +1,5 @@
-import { CONSONANTS, DIGITS, NUMBERS, VOWELS, type Sign } from './signs'
+import { ALPHABET, CONSONANTS, DIGITS, NUMBERS, VOWELS, type Sign } from './signs'
+import { GREETINGS, ME } from './words'
 
 export interface Lesson {
   id: string
@@ -24,6 +25,30 @@ export const NUMBER_LESSONS: Lesson[] = [
   lesson('nombres-10-15', 'Nombres de 10 à 15', slice(NUMBERS, 0, 6)),
   lesson('nombres-16-19', 'Nombres de 16 à 19', slice(NUMBERS, 6, 10)),
 ]
+
+/** Lettres du prénom, sans accents ni doublons : chaque lettre n'est épelée qu'une fois dans la leçon. */
+export function nameLetters(name: string): Sign[] {
+  const letters = name
+    .normalize('NFD')
+    .replace(/[^a-zA-Z]/g, '')
+    .toLowerCase()
+    .split('')
+  return [...new Set(letters)].map((id) => ALPHABET.find((s) => s.id === id)!)
+}
+
+/** « Je m'appelle … » : on pointe vers soi, puis on épelle son prénom avec l'alphabet manuel. */
+export function presentationLesson(name: string): Lesson {
+  const letters = nameLetters(name)
+  return {
+    id: 'presentation',
+    title: 'Me présenter',
+    subtitle: `Je + ${letters.map((s) => s.label).join(' ')}`,
+    signs: [ME, ...letters],
+  }
+}
+
+/** Leçons des mots de la vie de tous les jours. */
+export const WORD_LESSONS: Lesson[] = [lesson('politesse', 'Politesse', GREETINGS)]
 
 /** Leçons de l'alphabet, dans l'ordre conseillé. */
 export const ALPHABET_LESSONS: Lesson[] = [

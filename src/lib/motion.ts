@@ -2,7 +2,7 @@ import type { Point } from './landmarks'
 
 /** Mouvement attendu pour un signe. */
 export type MotionSpec =
-  | { kind: 'up' | 'down' | 'together' | 'pivot-down' }
+  | { kind: 'up' | 'down' | 'slide-down' | 'together' | 'pivot-down' | 'forward' | 'wave' }
   | { kind: 'path'; path: 'z' | 'j' }
 
 /** Repères d'une main sur une image, en coordonnées de l'image (0 à 1, non retournées). */
@@ -146,14 +146,17 @@ export function detectMotion(samples: Sample[], spec: MotionSpec, now: number): 
 
   switch (spec.kind) {
     case 'up':
-    case 'down': {
+    case 'down':
+    case 'slide-down': {
       const s = recent(1000).filter((x) => x.hands.length >= 1)
       if (s.length < MIN_SAMPLES) return false
       const ys = s.map((x) => mean(x.hands.map((h) => h.y)))
       const xs = s.map((x) => mean(x.hands.map((h) => h.x)))
-      const threshold = 0.7 * mean(s.map((x) => mean(x.hands.map((h) => h.scale))))
+      // Un glissement (le long de la joue) est plus court qu'un vrai déplacement vers le haut ou le bas.
+      const distance = spec.kind === 'slide-down' ? 0.4 : 0.7
+      const threshold = distance * mean(s.map((x) => mean(x.hands.map((h) => h.scale))))
       // L'axe y de l'image va vers le bas : monter = y diminue. On garde le point de départ le plus bas (ou le plus haut).
-      const sign = spec.kind === 'up' ? 1 : -1
+      const sign = spec.kind === 'up' ? 1 : -1 // « down » et « slide-down » descendent
       let start = { y: ys[0], x: xs[0] }
       for (let j = 1; j < s.length; j++) {
         const travelled = sign * (start.y - ys[j])
@@ -190,6 +193,45 @@ export function detectMotion(samples: Sample[], spec: MotionSpec, now: number): 
         highest = Math.max(highest, upness[j])
       }
       return false
+    }
+
+    case 'forward': {
+      // Une main qui s'avance vers la caméra paraît plus grande : sa taille augmente nettement.
+      const s = recent(1000).filter((x) => x.hands.length >= 1)
+      if (s.length < MIN_SAMPLES) return false
+      let smallest = s[0].hands[0].scale
+      for (const sample of s) {
+        const scale = sample.hands[0].scale
+        if (scale >= 1.25 * smallest) return true
+        smallest = Math.min(smallest, scale)
+      }
+      return false
+    }
+
+    case 'wave': {
+      // Une main qui se balance : le bout des doigts va et vient horizontalement, au moins trois demi-tours.
+      const s = recent(1500).filter((x) => x.hands.length >= 1)
+      if (s.length < 8) return false
+      const xs = s.map((x) => x.hands[0].tipX)
+      const threshold = 0.6 * mean(s.map((x) => x.hands[0].scale))
+      let low = xs[0]
+      let high = xs[0]
+      let direction = 0
+      let swings = 0
+      for (const x of xs) {
+        low = Math.min(low, x)
+        high = Math.max(high, x)
+        if (direction !== 1 && x - low >= threshold) {
+          direction = 1
+          swings++
+          high = x
+        } else if (direction !== -1 && high - x >= threshold) {
+          direction = -1
+          swings++
+          low = x
+        }
+      }
+      return swings >= 3
     }
 
     case 'path':

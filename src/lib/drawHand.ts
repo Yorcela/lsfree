@@ -1,7 +1,8 @@
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision'
 
-const FILL = '#ddd6fe'
-const OUTLINE = '#7c3aed'
+// Main « hologramme » : remplissage bleu-vert sombre, contour cyan lumineux.
+const FILL = '#0e5069'
+const OUTLINE = '#6ef3ff'
 const OUTLINE_EXTRA = 8
 
 /** Chaînes de points de chaque doigt, de la base vers le bout, avec leur épaisseur relative. */

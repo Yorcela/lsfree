@@ -1,51 +1,27 @@
-/* Thème « jeu » : boutons en relief, panneaux lavande, bandeaux, étoiles et barres rayées. */
+/* Thème « console de vaisseau » : panneaux bleu sombre à coins rouges, boutons métalliques, néons cyan et orange. */
 :root {
-  --ink: #2b2a63;
-  --ink-soft: #5d5b9a;
-  --bg-1: #efeaff;
-  --bg-2: #cfe6ff;
-  --card: #e6e9ff;
-  --card-edge: #aeb7f0;
-  --card-shadow: #8b95de;
-  --accent: #7c3aed;
-  --good: #2fbf4f;
+  --ink: #e8f4ff;
+  --ink-soft: #8fb6d4;
+  --night: #07111f;
+  --panel-1: #235a85;
+  --panel-2: #173f5e;
+  --edge: #08182c;
+  --edge-light: #3f86b8;
+  --screen: #081a2e;
+  --screen-edge: #1f5b86;
+  --cyan: #3de6ff;
+  --cyan-soft: #bff4ff;
+  --orange: #ff9a1f;
+  --orange-soft: #ffc766;
+  --red: #ff5a5f;
+  --good: #3be37a;
   --gold: #ffc233;
-  --gold-edge: #e58a0b;
-  --blue: #58b8ff;
-  --blue-2: #2b8cf0;
-  --blue-edge: #1b6fd1;
-  --green: #6be585;
-  --green-2: #2fbf4f;
-  --green-edge: #1f9c3b;
-  --orange: #ffc457;
-  --orange-2: #ff9a1f;
-  --orange-edge: #cf6f05;
-  --pink: #ff7cc4;
-  --pink-2: #f23d9e;
-  --pink-edge: #b52a77;
-  --track: #c4caf4;
-  --hand-bg: #26215f;
-  --hand-fill: #ddd6fe;
+  --accent: #3de6ff;
+  --hand-fill: #0e5069;
 
-  font: 17px/1.45 'Fredoka Variable', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
-  color-scheme: light dark;
+  font: 17px/1.45 'Oxanium Variable', 'Chakra Petch', system-ui, sans-serif;
+  color-scheme: dark;
   color: var(--ink);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #f4f0ff;
-    --ink-soft: #c9bcff;
-    --bg-1: #1b1041;
-    --bg-2: #2d1865;
-    --card: #3a2a7d;
-    --card-edge: #6a52c8;
-    --card-shadow: #231455;
-    --accent: #b79cff;
-    --track: #2a1d66;
-    --hand-bg: #1a1548;
-    --hand-fill: #5a49a8;
-  }
 }
 
 * {
@@ -55,7 +31,12 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(160deg, var(--bg-1), var(--bg-2)) fixed;
+  background:
+    radial-gradient(520px 380px at 0% 0%, rgba(255, 140, 40, 0.38), transparent 70%),
+    radial-gradient(560px 400px at 100% 100%, rgba(255, 140, 40, 0.32), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120, 200, 255, 0.045) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(120, 200, 255, 0.045) 0 1px, transparent 1px 44px),
+    linear-gradient(160deg, #0a1a33, #07111f 60%, #0a1f3a) fixed;
 }
 
 [hidden] {
@@ -65,54 +46,98 @@ body {
 .app {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: 24px 24px 40px;
   text-align: center;
 }
 
 h1 {
   margin: 0;
-  font-size: 56px;
+  font-size: 54px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: #fff;
-  letter-spacing: 1px;
-  -webkit-text-stroke: 8px var(--blue-edge);
-  paint-order: stroke fill;
-  text-shadow: 0 6px 0 rgba(27, 111, 209, 0.45);
+  text-shadow: 0 0 14px rgba(61, 230, 255, 0.85), 0 0 34px rgba(61, 230, 255, 0.4), 0 4px 0 #0a2a4a;
 }
 
 .subtitle {
   margin: 10px 0 22px;
   color: var(--ink-soft);
+  letter-spacing: 0.04em;
 }
 
-/* Titre de panneau : bandeau bleu posé sur le bord haut de la carte. */
+/* Titre de panneau : petit écran noir cerclé d'orange, posé sur le bord haut. */
 h2 {
   display: table;
-  margin: -44px auto 14px;
-  padding: 6px 24px;
-  border: 3px solid #cbe8ff;
-  border-radius: 999px;
-  background: linear-gradient(#5ec0ff, #2b8cf0);
-  box-shadow: 0 4px 0 var(--blue-edge);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  margin: -46px auto 16px;
+  padding: 6px 26px;
+  border: 3px solid var(--orange);
+  border-radius: 10px;
+  background: #07162a;
+  box-shadow: 0 0 14px rgba(255, 154, 31, 0.55), inset 0 0 10px rgba(255, 154, 31, 0.25);
+  color: var(--orange-soft);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 154, 31, 0.7);
 }
 
+/* Panneau : métal bleu sombre, coins rouges, pinces rouges sur les côtés. */
 .card {
-  margin-top: 40px;
-  padding: 18px;
-  border: 4px solid var(--card-edge);
-  border-radius: 24px;
-  background: var(--card);
-  box-shadow: 0 6px 0 var(--card-shadow), 0 16px 26px rgba(40, 30, 120, 0.18);
+  position: relative;
+  margin-top: 44px;
+  padding: 20px;
+  border: 4px solid var(--edge);
+  border-radius: 14px;
+  background: linear-gradient(var(--panel-1), var(--panel-2));
+  box-shadow:
+    inset 0 0 0 2px rgba(120, 190, 240, 0.25),
+    0 6px 0 #040c19,
+    0 20px 34px rgba(0, 0, 0, 0.5);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--red), var(--red)) left top / 22px 3px no-repeat,
+    linear-gradient(var(--red), var(--red)) left top / 3px 22px no-repeat,
+    linear-gradient(var(--red), var(--red)) right top / 22px 3px no-repeat,
+    linear-gradient(var(--red), var(--red)) right top / 3px 22px no-repeat,
+    linear-gradient(var(--red), var(--red)) left bottom / 22px 3px no-repeat,
+    linear-gradient(var(--red), var(--red)) left bottom / 3px 22px no-repeat,
+    linear-gradient(var(--red), var(--red)) right bottom / 22px 3px no-repeat,
+    linear-gradient(var(--red), var(--red)) right bottom / 3px 22px no-repeat;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 24px);
+  left: -12px;
+  right: -12px;
+  height: 48px;
+  pointer-events: none;
+  background:
+    linear-gradient(#d4463f, #8f2430) left / 9px 100% no-repeat,
+    linear-gradient(#d4463f, #8f2430) right / 9px 100% no-repeat;
+  border-radius: 5px;
+}
+
+/* Pendant une leçon, l'écran s'élargit : l'hologramme prend le plus de place possible. */
+.app.wide {
+  max-width: 1680px;
 }
 
 .stage {
   display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: 16px;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 2.6fr);
+  gap: 24px;
   text-align: left;
   align-items: start;
 }
@@ -141,125 +166,136 @@ h2 {
   text-align: left;
 }
 
-/* Boutons « bonbon » : dégradé, épaisse arête basse, enfoncement au clic. */
+/* Boutons métalliques : cadre sombre, reflet, pinces latérales, enfoncement au clic. */
 button {
-  padding: 9px 22px;
-  border: 3px solid rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  background: linear-gradient(var(--blue), var(--blue-2));
-  box-shadow: 0 5px 0 var(--blue-edge), 0 9px 12px rgba(30, 40, 120, 0.25);
+  position: relative;
+  margin: 0 9px;
+  padding: 10px 26px;
+  border: 3px solid var(--edge);
+  border-radius: 10px;
+  background: linear-gradient(#55adff, #2a7fd8 55%, #1c5fb0);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 8px rgba(0, 0, 50, 0.3),
+    0 4px 0 var(--edge),
+    0 9px 14px rgba(0, 0, 0, 0.5);
   color: #fff;
   font: inherit;
-  font-weight: 600;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
   cursor: pointer;
   transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
 }
 
+button::before,
+button::after {
+  content: '';
+  position: absolute;
+  top: 24%;
+  bottom: 24%;
+  width: 7px;
+  border-radius: 3px;
+  background: var(--edge);
+}
+
+button::before {
+  left: -9px;
+}
+
+button::after {
+  right: -9px;
+}
+
 button:hover:not(:disabled) {
-  filter: brightness(1.07);
+  filter: brightness(1.12);
 }
 
 button:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 var(--blue-edge), 0 3px 6px rgba(30, 40, 120, 0.25);
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 8px rgba(0, 0, 50, 0.3),
+    0 1px 0 var(--edge),
+    0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 button:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 3px;
+  outline: 3px solid var(--cyan);
+  outline-offset: 5px;
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 button.primary {
-  background: linear-gradient(var(--green), var(--green-2));
-  box-shadow: 0 5px 0 var(--green-edge), 0 9px 12px rgba(20, 90, 40, 0.25);
-}
-
-button.primary:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--green-edge), 0 3px 6px rgba(20, 90, 40, 0.25);
+  background: linear-gradient(var(--orange-soft), var(--orange) 55%, #e07400);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    inset 0 -6px 8px rgba(120, 50, 0, 0.3),
+    0 4px 0 var(--edge),
+    0 0 18px rgba(255, 154, 31, 0.5),
+    0 9px 14px rgba(0, 0, 0, 0.5);
+  color: #2b1400;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 button.warn {
-  background: linear-gradient(var(--orange), var(--orange-2));
-  box-shadow: 0 5px 0 var(--orange-edge), 0 9px 12px rgba(120, 70, 10, 0.25);
-}
-
-button.warn:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--orange-edge), 0 3px 6px rgba(120, 70, 10, 0.25);
+  background: linear-gradient(#ff7f83, #e5484d 55%, #a82a3a);
 }
 
 button.ghost {
-  border-color: var(--card-edge);
-  background: linear-gradient(#ffffff, #dfe3ff);
-  box-shadow: 0 5px 0 var(--card-shadow), 0 9px 12px rgba(30, 40, 120, 0.15);
-  color: var(--ink);
-  text-shadow: none;
-}
-
-button.ghost:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--card-shadow), 0 3px 6px rgba(30, 40, 120, 0.15);
-}
-
-@media (prefers-color-scheme: dark) {
-  button.ghost {
-    background: linear-gradient(#5a46ad, #43328f);
-    color: var(--ink);
-  }
+  background: linear-gradient(#dde4ec, #a9b4c2 55%, #7f8c9d);
+  color: #0f2036;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 14px 10px;
+  margin-top: 10px;
 }
 
 .actions.center {
   justify-content: center;
 }
 
-/* Navigation : deux gros onglets, celui de la page courante est rose. */
+/* Navigation : deux onglets métalliques, celui de la page courante est orange. */
 .nav {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
-  margin-bottom: 8px;
+  gap: 14px 12px;
+  margin-bottom: 10px;
 }
 
 button.nav-item {
-  min-width: 130px;
-  border-color: var(--card-edge);
-  background: linear-gradient(#ffffff, #dfe3ff);
-  box-shadow: 0 5px 0 var(--card-shadow), 0 9px 12px rgba(30, 40, 120, 0.15);
-  color: var(--ink);
-  text-shadow: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  button.nav-item {
-    background: linear-gradient(#5a46ad, #43328f);
-  }
+  min-width: 100px;
+  padding-inline: 16px;
+  background: linear-gradient(#2c5f8d, #183a5a);
 }
 
 button.nav-item.active {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: linear-gradient(var(--pink), var(--pink-2));
-  box-shadow: 0 5px 0 var(--pink-edge), 0 9px 12px rgba(120, 20, 80, 0.3);
-  color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  background: linear-gradient(var(--orange-soft), var(--orange) 55%, #e07400);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    0 4px 0 var(--edge),
+    0 0 18px rgba(255, 154, 31, 0.55);
+  color: #2b1400;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-/* Écran des leçons : tuiles façon sélection de niveau. */
+/* Écran des leçons : tuiles façon console de mission. */
 .lesson-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 22px 16px;
-  margin-top: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 24px 18px;
+  margin-top: 10px;
 }
 
 button.lesson-card {
@@ -267,53 +303,64 @@ button.lesson-card {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  margin: 0;
   padding: 16px 12px 14px;
-  border: 4px solid var(--card-edge);
-  border-radius: 22px;
-  background: linear-gradient(#f4f5ff, var(--card));
-  box-shadow: 0 6px 0 var(--card-shadow), 0 12px 18px rgba(40, 30, 120, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(#1b4668, #12314c);
+  box-shadow:
+    inset 0 0 0 2px rgba(120, 190, 240, 0.22),
+    0 5px 0 #040c19,
+    0 12px 20px rgba(0, 0, 0, 0.45);
   color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
   text-shadow: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  button.lesson-card {
-    background: linear-gradient(#4a389a, var(--card));
-  }
+button.lesson-card::before,
+button.lesson-card::after {
+  display: none;
 }
 
 button.lesson-card:hover:not(:disabled) {
   transform: translateY(-3px);
+  border-color: var(--orange);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 154, 31, 0.4),
+    0 5px 0 #040c19,
+    0 0 22px rgba(255, 154, 31, 0.45);
 }
 
 button.lesson-card:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--card-shadow);
 }
 
 .lesson-title {
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .lesson-letters {
   max-width: 100%;
-  color: var(--pink-2);
+  color: var(--cyan);
   font-size: 20px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 10px rgba(61, 230, 255, 0.7);
   overflow-wrap: anywhere;
 }
 
 .global-progress {
-  max-width: 460px;
-  margin: 22px auto 4px;
+  max-width: 480px;
+  margin: 22px auto 6px;
 }
 
 .global-progress p {
   margin: 0 0 6px;
   color: var(--ink-soft);
-  font-weight: 500;
+  letter-spacing: 0.05em;
 }
 
 /* Étoiles de récompense. */
@@ -323,36 +370,36 @@ button.lesson-card:active:not(:disabled) {
 }
 
 .star polygon {
-  fill: var(--track);
-  stroke: var(--card-edge);
+  fill: #0b2038;
+  stroke: var(--screen-edge);
   stroke-width: 5;
   stroke-linejoin: round;
 }
 
 .star.on polygon {
   fill: var(--gold);
-  stroke: var(--gold-edge);
+  stroke: #e58a0b;
 }
 
-.result .stars {
-  margin: 4px 0 8px;
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.15));
+.star.on {
+  filter: drop-shadow(0 0 6px rgba(255, 194, 51, 0.8));
 }
 
-/* Barres : rayées comme dans les jeux, avec le pourcentage dans la barre. */
+/* Barres : segments lumineux dans un rail sombre. */
 .bar {
   position: relative;
   height: 24px;
-  border: 3px solid var(--card-edge);
-  border-radius: 999px;
-  background: var(--track);
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+  background: var(--screen);
+  box-shadow: inset 0 0 0 1px var(--screen-edge);
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  border-radius: 999px;
-  background: repeating-linear-gradient(-45deg, #b64cf2 0 10px, #d58bff 10px 20px);
+  background: repeating-linear-gradient(90deg, var(--cyan) 0 14px, #168fb0 14px 16px);
+  box-shadow: 0 0 12px rgba(61, 230, 255, 0.7);
   transition: width 0.3s;
 }
 
@@ -364,47 +411,175 @@ button.lesson-card:active:not(:disabled) {
   color: #fff;
   font-size: 13px;
   font-weight: 700;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 4px #000, 0 1px 2px #000;
 }
 
 .meter {
-  height: 14px;
+  height: 12px;
   margin-top: 12px;
-  border: 2px solid var(--card-edge);
-  border-radius: 999px;
-  background: var(--track);
+  border: 2px solid var(--screen-edge);
+  border-radius: 6px;
+  background: var(--screen);
   overflow: hidden;
 }
 
 .meter-bar {
   height: 100%;
-  background: repeating-linear-gradient(-45deg, #b64cf2 0 8px, #d58bff 8px 16px);
+  background: repeating-linear-gradient(90deg, var(--cyan) 0 10px, #168fb0 10px 12px);
   transition: width 0.1s;
 }
 
 .meter-bar.good {
-  background: repeating-linear-gradient(-45deg, #2fbf4f 0 8px, #6be585 8px 16px);
+  background: repeating-linear-gradient(90deg, var(--good) 0 10px, #1a9a50 10px 12px);
+  box-shadow: 0 0 10px rgba(59, 227, 122, 0.7);
 }
 
-/* Le signe à faire. */
+/* Le signe à faire : lettre lumineuse. */
 .sign-label {
-  margin: 0 0 4px;
+  margin: 4px 0;
   color: #fff;
   font-size: 96px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.05;
-  -webkit-text-stroke: 10px var(--pink-edge);
-  paint-order: stroke fill;
-  text-shadow: 0 7px 0 rgba(181, 42, 119, 0.5);
+  text-shadow: 0 0 16px rgba(61, 230, 255, 0.9), 0 0 40px rgba(61, 230, 255, 0.45);
+}
+
+/* Les mots sont plus longs qu'une lettre. */
+.sign-label.word {
+  font-size: clamp(34px, 8vw, 52px);
+  letter-spacing: 0.04em;
+}
+
+/* Schéma animé du corps et de la main, pour les mots. */
+.diagram {
+  width: 240px;
+  max-width: 100%;
+  margin: 4px 0 8px;
+}
+
+.diagram .body {
+  fill: #0b2038;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px rgba(61, 230, 255, 0.5));
+}
+
+.diagram .eye {
+  fill: var(--cyan);
+}
+
+.diagram .mouth {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Sans animation, la main reste à sa position d'arrivée. */
+.travel {
+  transform: var(--to);
+  animation: travel 2.4s ease-in-out infinite;
+}
+
+@keyframes travel {
+  0%,
+  20% {
+    transform: var(--from);
+  }
+  80%,
+  100% {
+    transform: var(--to);
+  }
+}
+
+.wave {
+  transform-box: fill-box;
+  transform-origin: 50% 92%;
+  animation: wave 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes wave {
+  from {
+    transform: rotate(-24deg);
+  }
+  to {
+    transform: rotate(24deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel,
+  .wave {
+    animation: none;
+  }
+}
+
+.name-field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--cyan-soft);
+  text-align: left;
+}
+
+.name-field input {
+  padding: 10px 14px;
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+  background: var(--screen);
+  box-shadow: 0 0 0 2px var(--screen-edge), inset 0 0 12px rgba(61, 230, 255, 0.1);
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.name-field input:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Main robot d'une lettre, avec sa flèche de mouvement (J, P, Z). */
+.sprite {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  margin: 6px 0 10px;
+}
+
+.sprite-img {
+  height: 190px;
+  width: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 0 10px rgba(61, 230, 255, 0.45)) drop-shadow(0 6px 4px rgba(0, 0, 0, 0.35));
+}
+
+.sprite-arrow {
+  height: 120px;
+  width: auto;
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px rgba(255, 154, 31, 0.7));
+}
+
+.sprite-arrow .arrow-head {
+  fill: var(--orange);
+  stroke: none;
 }
 
 .sign-image {
   max-width: 100%;
   max-height: 220px;
   margin-bottom: 8px;
-  border: 4px solid var(--card-edge);
-  border-radius: 16px;
-  box-shadow: 0 4px 0 var(--card-shadow);
+  border: 3px solid var(--edge);
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--screen-edge), 0 0 18px rgba(61, 230, 255, 0.35);
 }
 
 .chips {
@@ -412,59 +587,163 @@ button.lesson-card:active:not(:disabled) {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  margin: 10px 0;
+  margin: 12px 0;
 }
 
 .chip {
   display: grid;
   place-items: center;
-  width: 32px;
+  min-width: 32px;
   height: 32px;
-  border: 3px solid var(--card-edge);
-  border-radius: 50%;
-  background: var(--track);
+  padding: 0 8px;
+  border: 2px solid var(--screen-edge);
+  border-radius: 6px;
+  background: var(--screen);
+  color: var(--ink-soft);
   font-size: 14px;
   font-weight: 700;
 }
 
 .chip.current {
-  border-color: #fff;
-  background: linear-gradient(var(--pink), var(--pink-2));
-  box-shadow: 0 3px 0 var(--pink-edge);
-  color: #fff;
+  border-color: var(--orange);
+  background: #3a2300;
+  box-shadow: 0 0 12px rgba(255, 154, 31, 0.7);
+  color: var(--orange-soft);
 }
 
 .chip.done {
-  border-color: var(--green-edge);
-  background: linear-gradient(var(--green), var(--green-2));
-  color: #fff;
+  border-color: var(--good);
+  color: var(--good);
 }
 
 .hint {
   font-style: italic;
+  color: var(--cyan-soft);
 }
 
-/* Zone d'affichage de la main : fond sombre façon écran de jeu, jamais l'image de la caméra. */
+/* La mascotte parle dans une bulle en forme d'écran, avec une flèche vers elle. */
+.mascot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.mascot-img {
+  flex: none;
+  height: 112px;
+  width: auto;
+  filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.4));
+  animation: float 3.2s ease-in-out infinite;
+}
+
+.bubble {
+  position: relative;
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--screen-edge);
+  border-radius: 12px;
+  background: var(--screen);
+  box-shadow: inset 0 0 14px rgba(61, 230, 255, 0.12);
+  color: var(--cyan-soft);
+  font-weight: 500;
+}
+
+.bubble::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-right-color: var(--screen-edge);
+  border-left: 0;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: var(--screen);
+  border-left: 0;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-img {
+    animation: none;
+  }
+}
+
+/* Compte à rebours avant l'interro. */
+.countdown {
+  margin: 14px 0 4px;
+  color: #fff;
+  font-size: 120px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 18px var(--cyan), 0 0 44px rgba(61, 230, 255, 0.6);
+  animation: pop 0.9s ease-out;
+}
+
+.countdown.quizz {
+  color: var(--orange-soft);
+  font-size: 64px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 18px var(--orange), 0 0 44px rgba(255, 154, 31, 0.6);
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Zone de la main : la main est projetée en hologramme, jamais l'image de la caméra. */
 .hand-wrap {
   position: relative;
-  border: 4px solid var(--card-edge);
-  border-radius: 16px;
-  background: var(--hand-bg);
+  border: 4px solid var(--edge);
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 100%, #14507a 0%, #0b1f3d 50%, #060d1f 100%);
+  box-shadow: 0 0 0 2px var(--screen-edge);
   aspect-ratio: 4 / 3;
   overflow: hidden;
 }
 
-/* Effet miroir : le tracé suit les mouvements comme dans un miroir. */
+/* Effet miroir : le tracé suit les mouvements comme dans un miroir ; il brille comme un hologramme. */
 .hand-wrap canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transform: scaleX(-1);
+  filter: drop-shadow(0 0 6px rgba(61, 230, 255, 0.9)) drop-shadow(0 0 18px rgba(61, 230, 255, 0.45));
+  animation: holo-flicker 3.2s infinite;
 }
 
-/* La vidéo sert uniquement à la détection : elle est invisible et ne prend pas de place. */
+/* La vidéo sert uniquement à la détection : elle est invisible et ne prend pas de place. Ne jamais l'afficher :
+   l'image de la caméra (visage, arrière-plan) ne doit apparaître nulle part. */
 .hidden-video {
   position: absolute;
   width: 1px;
@@ -473,57 +752,123 @@ button.lesson-card:active:not(:disabled) {
   pointer-events: none;
 }
 
+/* Faisceau de lumière qui monte du projecteur : la main semble projetée. */
+.holo-beam {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  width: 78%;
+  height: 88%;
+  transform: translateX(-50%);
+  background: linear-gradient(to top, rgba(61, 230, 255, 0.5), rgba(61, 230, 255, 0.12) 65%, rgba(61, 230, 255, 0));
+  clip-path: polygon(34% 100%, 66% 100%, 100% 0, 0 0);
+}
+
+/* Fines lignes horizontales façon écran holographique. */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(120, 240, 255, 0.07) 0 2px, transparent 2px 5px);
+  pointer-events: none;
+}
+
+.holo-base {
+  position: absolute;
+  bottom: 2%;
+  left: 50%;
+  width: 40%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 10px rgba(61, 230, 255, 0.6));
+}
+
+.holo-base .body {
+  fill: #8d9bb3;
+  stroke: #3a4a66;
+  stroke-width: 2;
+}
+
+.holo-base .pod {
+  fill: #ff7a2f;
+  stroke: #7c3410;
+  stroke-width: 2;
+}
+
+.holo-base .window-frame {
+  fill: #ff9a1f;
+}
+
+.holo-base .window {
+  fill: #0a1830;
+}
+
+.holo-base .emitter {
+  fill: #7ff6ff;
+}
+
+.holo-base .thruster {
+  fill: #3de6ff;
+  opacity: 0.8;
+}
+
+@keyframes holo-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.93;
+  }
+  52% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-wrap canvas,
+  .countdown {
+    animation: none;
+  }
+}
+
 .overlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(20, 14, 60, 0.7);
-  color: #fff;
+  background: rgba(4, 12, 28, 0.75);
+  color: var(--cyan-soft);
   text-align: center;
 }
 
 .overlay.error {
-  color: #ffc9c9;
+  color: #ffb3b5;
 }
 
+/* Écran de retour : texte cyan sur fond sombre. */
 .feedback {
   min-height: 3.2em;
-  margin: 12px 0;
+  margin: 14px 0;
   padding: 10px 14px;
-  border: 3px solid var(--card-edge);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid var(--screen-edge);
+  border-radius: 8px;
+  background: var(--screen);
+  box-shadow: inset 0 0 14px rgba(61, 230, 255, 0.12);
+  color: var(--cyan-soft);
   font-weight: 500;
   text-align: center;
 }
 
-@media (prefers-color-scheme: dark) {
-  .feedback {
-    background: rgba(0, 0, 0, 0.2);
-  }
-}
-
 .privacy {
-  margin: 12px 0;
-  padding: 12px 14px;
-  border: 3px solid var(--card-edge);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.45);
+  max-width: 640px;
+  margin: 12px auto;
+  padding: 12px 16px;
+  border: 2px solid var(--screen-edge);
+  border-left: 6px solid var(--orange);
+  border-radius: 8px;
+  background: var(--screen);
+  color: var(--cyan-soft);
   text-align: left;
-}
-
-@media (prefers-color-scheme: dark) {
-  .privacy {
-    background: rgba(0, 0, 0, 0.2);
-  }
-}
-
-.privacy.small {
-  margin: 0;
-  padding: 8px 12px;
-  font-size: 14px;
 }
 
 .note {
@@ -532,32 +877,98 @@ button.lesson-card:active:not(:disabled) {
   font-size: 15px;
 }
 
+/* L'hologramme à gauche, « Ce que la caméra voit » à droite, comme un panneau de statistiques. */
+.holo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3.2fr) minmax(210px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* La fenêtre prend toute la largeur dispo, sans dépasser 72 % de la hauteur de l'écran, au format de la caméra. */
+.holo-row .hand-wrap {
+  width: min(100%, calc(72vh * var(--aspect, 1.3333)));
+  min-width: 0;
+}
+
+.holo-row .debug {
+  align-self: stretch;
+}
+
+@media (max-width: 560px) {
+  .holo-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .debug {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 3px solid var(--edge);
+  border-radius: 10px;
+  background: var(--screen);
+  box-shadow: 0 0 0 2px var(--screen-edge), inset 0 0 14px rgba(61, 230, 255, 0.1);
   font-size: 14px;
 }
 
-.debug summary {
-  cursor: pointer;
+.debug-title {
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--screen-edge);
+  color: var(--orange-soft);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 154, 31, 0.6);
 }
 
+.debug-meta {
+  margin: -2px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+/* Une ligne par doigt : nom et pourcentage au-dessus d'une barre segmentée, façon « points de vie ». */
 .debug-row {
   display: grid;
-  grid-template-columns: 11em 1fr;
-  align-items: center;
-  gap: 8px;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  column-gap: 8px;
+  color: var(--cyan-soft);
+}
+
+.debug-name {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.debug-value {
+  color: var(--good);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .debug-row .meter {
-  height: 8px;
-  margin: 0;
+  grid-column: 1 / -1;
+  height: 10px;
+  margin: 3px 0 0;
+}
+
+.debug-row .meter-bar {
+  background: repeating-linear-gradient(90deg, var(--good) 0 9px, #157a40 9px 11px);
+  box-shadow: 0 0 8px rgba(59, 227, 122, 0.6);
 }
 
 .big-score {
   margin: 4px 0 8px;
-  color: var(--ink);
+  color: #fff;
   font-size: 34px;
-  font-weight: 700;
+  font-weight: 800;
+  text-shadow: 0 0 14px rgba(61, 230, 255, 0.8);
 }
 
 .answers {
@@ -570,30 +981,22 @@ button.lesson-card:active:not(:disabled) {
 
 .answers li {
   padding: 6px 0;
-  border-bottom: 2px dashed var(--card-edge);
+  border-bottom: 1px dashed var(--screen-edge);
 }
 
 .answers .ok {
-  color: var(--green-edge);
+  color: var(--good);
 }
 
 .answers .skipped {
-  color: #d83a3a;
-}
-
-@media (prefers-color-scheme: dark) {
-  .answers .ok {
-    color: #6be585;
-  }
-  .answers .skipped {
-    color: #ff8f8f;
-  }
+  color: #ff8f93;
 }
 
 .answer-letter {
   display: inline-block;
-  width: 1.6em;
-  font-weight: 700;
+  min-width: 1.6em;
+  margin-right: 0.6em;
+  font-weight: 800;
 }
 
 /* Illustrations des chiffres. */
@@ -613,6 +1016,7 @@ button.lesson-card:active:not(:disabled) {
 .hand-svg {
   width: 86px;
   height: auto;
+  filter: drop-shadow(0 0 6px rgba(61, 230, 255, 0.55));
 }
 
 .hand-svg rect,
@@ -643,9 +1047,10 @@ button.lesson-card:active:not(:disabled) {
 }
 
 .arrow {
-  color: var(--pink-2);
+  color: var(--orange);
   font-size: 28px;
   font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 154, 31, 0.7);
 }
 
 .arrow.big {
@@ -661,7 +1066,8 @@ button.lesson-card:active:not(:disabled) {
 .gallery summary {
   cursor: pointer;
   text-align: center;
-  font-weight: 500;
+  color: var(--cyan-soft);
+  letter-spacing: 0.04em;
 }
 
 .gallery-grid {
@@ -678,20 +1084,21 @@ button.lesson-card:active:not(:disabled) {
 
 .gallery-grid img {
   width: 100%;
-  border: 3px solid var(--card-edge);
-  border-radius: 12px;
+  border: 2px solid var(--screen-edge);
+  border-radius: 8px;
 }
 
 .gallery-grid figcaption {
-  font-weight: 700;
+  color: var(--cyan);
+  font-weight: 800;
 }
 
 .credits {
-  margin-top: 28px;
+  margin-top: 30px;
   color: var(--ink-soft);
   font-size: 13px;
 }
 
 .credits a {
-  color: var(--accent);
+  color: var(--cyan);
 }

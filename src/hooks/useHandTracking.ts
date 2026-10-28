@@ -2,7 +2,7 @@ import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision'
 import { useEffect, useRef, useState } from 'react'
 import { drawHand } from '../lib/drawHand'
 import { createHandTracker } from '../lib/handTracker'
-import { matchHands, normalize, type DetectedHand, type Match } from '../lib/landmarks'
+import { fingerValues, matchHands, normalize, type DetectedHand, type FingerValues, type Match } from '../lib/landmarks'
 import { detectMotion, toHandPoint, WINDOW_MS, type Sample } from '../lib/motion'
 import type { Sign } from '../lib/signs'
 
@@ -22,6 +22,8 @@ export type Status = 'idle' | 'loading' | 'ready' | 'error'
 export interface Live {
   hand: boolean
   match: Match | null
+  /** Dépliement de chaque doigt de la première main vue, même quand aucun signe n'est comparé. */
+  values: FingerValues | null
 }
 
 /**
@@ -40,7 +42,9 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
 
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState('')
-  const [live, setLive] = useState<Live>({ hand: false, match: null })
+  // Format réel de l'image de la caméra : la zone de la main l'épouse pour montrer toute la scène, sans rognage.
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const [live, setLive] = useState<Live>({ hand: false, match: null, values: null })
 
   useEffect(() => {
     targetRef.current = target
@@ -66,10 +70,12 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
     async function start() {
       setStatus('loading')
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+        // Image large : beaucoup de webcams n'obtiennent le 4:3 qu'en rognant le centre, ce qui zoome sur la scène.
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } })
         const video = videoRef.current!
         video.srcObject = stream
         await video.play()
+        if (video.videoWidth > 0 && video.videoHeight > 0) setSize({ width: video.videoWidth, height: video.videoHeight })
         tracker = await createHandTracker()
         if (stop) return
         setStatus('ready')
@@ -91,8 +97,8 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
 
             const detected: DetectedHand[] = result.landmarks.map((landmarks, i) => {
               drawHand(ctx, landmarks, canvas.width, canvas.height)
-              drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: '#7c3aed', lineWidth: 6 })
-              drawing.drawLandmarks(landmarks, { color: '#ffffff', fillColor: '#7c3aed', radius: 5 })
+              drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: '#c9fbff', lineWidth: 4 })
+              drawing.drawLandmarks(landmarks, { color: '#ffffff', fillColor: '#6ef3ff', radius: 5 })
               const handedness = result.handedness[i][0].categoryName as 'Left' | 'Right'
               return { landmarks, shape: normalize(landmarks, handedness) }
             })
@@ -128,14 +134,14 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
                     onSuccessRef.current()
                   }
                 }
-                setLive({ hand: true, match })
+                setLive({ hand: true, match, values: fingerValues(detected[0].shape) })
               } else {
-                setLive({ hand: true, match: null })
+                setLive({ hand: true, match: null, values: fingerValues(detected[0].shape) })
               }
             } else {
               armedRef.current = true
               goodFramesRef.current = 0
-              setLive({ hand: false, match: null })
+              setLive({ hand: false, match: null, values: null })
             }
           }
           frame = requestAnimationFrame(loop)
@@ -156,7 +162,8 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
     }
   }, [enabled])
 
-  return { videoRef, canvasRef, status, error, live }
+  const aspect = size ? size.width / size.height : 4 / 3
+  return { videoRef, canvasRef, status, error, live, aspect, size }
 }
 
 /** Dessine la trajectoire récente de la main : l'élève voit ce que la caméra suit. */

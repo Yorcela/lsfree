@@ -21,6 +21,26 @@ export function loadStars(): StarsMap {
   return stars
 }
 
+const NAME_KEY = 'lsfree.name'
+const DEFAULT_NAME = 'Alec'
+
+/** Prénom que l'élève épelle dans la leçon « Me présenter ». */
+export function loadName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? DEFAULT_NAME
+  } catch {
+    return DEFAULT_NAME
+  }
+}
+
+export function saveName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name)
+  } catch {
+    // stockage indisponible : le prénom ne sera pas gardé
+  }
+}
+
 /** Garde le meilleur résultat de la leçon. */
 export function saveStars(id: string, stars: number): StarsMap {
   const all = loadStars()

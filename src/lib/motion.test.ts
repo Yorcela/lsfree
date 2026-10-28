@@ -63,6 +63,32 @@ describe('monter et descendre', () => {
   })
 })
 
+describe('glissement vers le bas', () => {
+  it('reconnaît un court glissement que « descendre » ne voit pas', () => {
+    // 0,09 d'image = 0,6 fois la taille de la main : plus que le seuil du glissement (0,4), moins que celui de « descendre » (0,7).
+    const s = track(line([0.55, 0.4], [0.52, 0.49], 12))
+    expect(detectMotion(s, { kind: 'slide-down' }, now(s))).toBe(true)
+    expect(detectMotion(s, { kind: 'down' }, now(s))).toBe(false)
+  })
+
+  it('reconnaît aussi un glissement plus long', () => {
+    const s = track(line([0.55, 0.3], [0.5, 0.5], 12))
+    expect(detectMotion(s, { kind: 'slide-down' }, now(s))).toBe(true)
+  })
+
+  it('ignore une main immobile et un mouvement vers le haut', () => {
+    const still = track(Array.from({ length: 12 }, () => [0.5, 0.45] as [number, number]))
+    expect(detectMotion(still, { kind: 'slide-down' }, now(still))).toBe(false)
+    const up = track(line([0.5, 0.55], [0.5, 0.4], 12))
+    expect(detectMotion(up, { kind: 'slide-down' }, now(up))).toBe(false)
+  })
+
+  it('ignore un glissement surtout horizontal', () => {
+    const s = track(line([0.3, 0.44], [0.6, 0.5], 12))
+    expect(detectMotion(s, { kind: 'slide-down' }, now(s))).toBe(false)
+  })
+})
+
 describe('deux mains qui se rapprochent', () => {
   it('reconnaît le rapprochement', () => {
     const s: Sample[] = Array.from({ length: 15 }, (_, i) => {
@@ -104,6 +130,59 @@ describe('main qui pivote vers le bas', () => {
       hands: [hand(0.5, 0.5, { tipX: 0.5 + SCALE, tipY: 0.5 })],
     }))
     expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(false)
+  })
+})
+
+describe('main qui avance vers la caméra', () => {
+  /** La taille apparente de la main évolue de `from` à `to`. */
+  const growing = (from: number, to: number): Sample[] =>
+    Array.from({ length: 15 }, (_, i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5, 0.5, { scale: from + ((to - from) * i) / 14 })],
+    }))
+
+  it("reconnaît une main qui s'agrandit", () => {
+    const s = growing(0.12, 0.18)
+    expect(detectMotion(s, { kind: 'forward' }, now(s))).toBe(true)
+  })
+
+  it('ignore une main à distance constante', () => {
+    const s = growing(0.15, 0.155)
+    expect(detectMotion(s, { kind: 'forward' }, now(s))).toBe(false)
+  })
+
+  it('ignore une main qui recule', () => {
+    const s = growing(0.18, 0.12)
+    expect(detectMotion(s, { kind: 'forward' }, now(s))).toBe(false)
+  })
+})
+
+describe('main qui se balance', () => {
+  /** Le bout des doigts oscille horizontalement : `swings` demi-tours d'amplitude `amplitude`. */
+  const waving = (swings: number, amplitude: number): Sample[] =>
+    Array.from({ length: 24 }, (_, i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5, 0.5, { tipX: 0.5 + amplitude * Math.sin((i / 23) * swings * Math.PI) })],
+    }))
+
+  it('reconnaît un salut de la main', () => {
+    const s = waving(4, 0.15)
+    expect(detectMotion(s, { kind: 'wave' }, now(s))).toBe(true)
+  })
+
+  it('ignore une main immobile', () => {
+    const s = waving(4, 0)
+    expect(detectMotion(s, { kind: 'wave' }, now(s))).toBe(false)
+  })
+
+  it("ignore un simple déplacement dans un seul sens", () => {
+    const s = waving(1, 0.15)
+    expect(detectMotion(s, { kind: 'wave' }, now(s))).toBe(false)
+  })
+
+  it('ignore un tremblement trop petit', () => {
+    const s = waving(6, 0.02)
+    expect(detectMotion(s, { kind: 'wave' }, now(s))).toBe(false)
   })
 })
 

@@ -7,6 +7,20 @@ export interface HandDrawing {
   pinch?: boolean
 }
 
+/** Endroits du corps, sur le schéma animé d'un signe. */
+export type Spot = 'forehead' | 'mouth' | 'chin' | 'cheek' | 'chest' | 'front'
+
+/** Schéma animé d'un signe : où est la main au départ, où elle va, et si elle s'approche ou se balance. */
+export interface DiagramSpec {
+  hand: FingerValues
+  from: Spot
+  to?: Spot
+  /** La main s'avance vers le spectateur (elle grossit). */
+  grow?: boolean
+  /** La main se balance de gauche à droite. */
+  wave?: boolean
+}
+
 export interface Sign extends SignSpec {
   id: string
   label: string
@@ -22,6 +36,8 @@ export interface Sign extends SignSpec {
   hands?: HandDrawing[]
   /** Mouvement à montrer sur l'illustration. */
   arrow?: 'up' | 'down' | 'together'
+  /** Schéma animé du corps et de la main : pour les mots, dont la place sur le visage compte. */
+  diagram?: DiagramSpec
 }
 
 export const VOWELS: Sign[] = [
@@ -40,20 +56,20 @@ export const CONSONANTS: Sign[] = [
   { id: 'f', label: 'F', hint: "Le pouce et l'index se touchent en cercle, les trois autres doigts sont tendus et écartés.", fingers: [0.5, 0.5, 1, 1, 1], pinch: true },
   { id: 'g', label: 'G', hint: 'Index tendu vers le haut, les autres doigts et le pouce repliés.', fingers: [0.1, 1, 0, 0, 0] },
   { id: 'h', label: 'H', hint: 'Index et auriculaire tendus, majeur et annulaire repliés.', fingers: [0.1, 1, 0, 0, 1] },
-  { id: 'j', label: 'J', hint: 'Suis les flèches de la photo : la main trace un « J » dans l\'air.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'j' }, ignoreShape: true },
+  { id: 'j', label: 'J', hint: 'Pouce et auriculaire tendus : la main pivote et trace un « J » dans l\'air, comme la flèche.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'j' }, ignoreShape: true },
   { id: 'k', label: 'K', hint: 'Index et majeur tendus, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0] },
   { id: 'l', label: 'L', hint: 'Index et pouce tendus à angle droit, autres doigts repliés.', fingers: [0.9, 1, 0, 0, 0] },
   { id: 'm', label: 'M', hint: "Main à plat, à l'horizontale, doigts tendus et serrés, pouce replié.", fingers: [0.1, 1, 1, 1, 1], orientation: 'side' },
   { id: 'n', label: 'N', hint: "Index et majeur tendus et serrés, à l'horizontale, autres doigts repliés.", fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'side' },
-  { id: 'p', label: 'P', hint: 'Suis la flèche de la photo : la main à plat pivote vers le bas.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'pivot-down' }, ignoreShape: true },
+  { id: 'p', label: 'P', hint: 'La main pointée vers le bas hoche vers le bas, comme la flèche.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'pivot-down' }, ignoreShape: true },
   { id: 'q', label: 'Q', hint: 'Index pointé vers le bas, autres doigts repliés.', fingers: [0.1, 1, 0, 0, 0], orientation: 'down' },
   { id: 'r', label: 'R', hint: 'Index et majeur croisés, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'up' },
   { id: 's', label: 'S', hint: 'Poing fermé, pouce replié devant les doigts.', fingers: [0.2, 0, 0, 0, 0] },
-  { id: 't', label: 'T', hint: 'Voir la photo : pouce plié contre l\'index, les trois autres doigts tendus et écartés.', fingers: [0.4, 0.6, 1, 1, 1], pinch: false },
+  { id: 't', label: 'T', hint: 'Voir la photo : index et pouce couchés l\'un vers l\'autre, majeur, annulaire et auriculaire tendus et écartés.', fingers: [0.5, 0.5, 1, 1, 1], ignore: [0, 1] },
   { id: 'v', label: 'V', hint: 'Index et majeur tendus et écartés en « V », autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0], spread: 'wide' },
   { id: 'w', label: 'W', hint: 'Index, majeur et annulaire tendus et écartés, pouce et auriculaire repliés.', fingers: [0.1, 1, 1, 1, 0] },
   { id: 'x', label: 'X', hint: 'Index et majeur recourbés en crochet, autres doigts repliés.', fingers: [0.1, 0.5, 0.5, 0, 0] },
-  { id: 'z', label: 'Z', hint: 'Poing, pouce levé : la main trace un « Z » dans l\'air.', fingers: [0.8, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'z' } },
+  { id: 'z', label: 'Z', hint: 'Poing fermé, index pointé : la main trace un « Z » dans l\'air, comme la flèche.', fingers: [0.5, 0.5, 0, 0, 0], ignore: [0, 1], motion: true, move: { kind: 'path', path: 'z' } },
 ]
 
 const ONE: FingerValues = [0.8, 0, 0, 0, 0]
@@ -132,6 +148,12 @@ export const NUMBERS: Sign[] = [
 
 /** Toutes les lettres, dans l'ordre alphabétique. */
 export const ALPHABET: Sign[] = [...VOWELS, ...CONSONANTS].sort((a, b) => a.id.localeCompare(b.id))
+
+/**
+ * Lettres dont la main robot (public/hands/<lettre>.png) a été vérifiée. Les autres gardent la photo.
+ * À compléter quand les mains de G, O, T et W seront corrigées.
+ */
+export const HAND_SPRITES = new Set('abcdefhijklmnpqrsuvxyz'.split(''))
 
 /** Passages demandés pour chaque signe pendant l'apprentissage. */
 export const REPETITIONS = 3

@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { SUCCESS_SCORE, useHandTracking, type Live } from '../hooks/useHandTracking'
 import type { Lesson } from '../lib/lessons'
 import { HandIllustration } from './HandIllustration'
+import { HandSprite } from './HandSprite'
+import { Mascot, type Mood } from './Mascot'
 import { ProgressBar } from './ProgressBar'
+import { SignDiagram } from './SignDiagram'
 import { Stars } from './Stars'
-import { REPETITIONS, type Sign } from '../lib/signs'
+import { HAND_SPRITES, REPETITIONS, type Sign } from '../lib/signs'
 
-type Phase = 'intro' | 'learn' | 'quizIntro' | 'quiz' | 'result'
+type Phase = 'intro' | 'learn' | 'countdown' | 'quiz' | 'result'
+
+const FINGER_NAMES = ['pouce', 'index', 'majeur', 'annulaire', 'auriculaire']
 type Outcome = 'ok' | 'hint' | 'skipped'
 interface Answer {
   sign: Sign
@@ -27,6 +32,21 @@ function starsFor(answers: Answer[]): number {
   return ratio >= 0.9 ? 3 : ratio >= 0.5 ? 2 : 1
 }
 
+/** Humeur de la mascotte à la fin de l'interro : amoureuse pour 3 étoiles, fière pour 2, puis déçue ou découragée. */
+function resultMood(answers: Answer[]): Mood {
+  const stars = starsFor(answers)
+  if (stars === 3) return 'amoureux'
+  if (stars === 2) return 'fier'
+  const ok = answers.filter((a) => a.outcome === 'ok').length
+  return ok / (answers.length || 1) >= 0.25 ? 'decu' : 'decourage'
+}
+
+const RESULT_LINE: Record<number, string> = {
+  3: 'Parfait ! Tu maîtrises ces signes.',
+  2: "Bien joué ! Encore un peu d'entraînement et ce sera parfait.",
+  1: "L'interro est finie. Revois le cours, tu vas y arriver !",
+}
+
 function shuffle<T>(items: T[]): T[] {
   const result = [...items]
   for (let i = result.length - 1; i > 0; i--) {
@@ -38,7 +58,9 @@ function shuffle<T>(items: T[]): T[] {
 
 /** Photo pour les lettres, illustration dessinée pour les chiffres et les nombres. */
 function Photo({ sign }: { sign: Sign }) {
+  if (sign.diagram) return <SignDiagram sign={sign} />
   if (sign.hands) return <HandIllustration sign={sign} />
+  if (HAND_SPRITES.has(sign.id)) return <HandSprite sign={sign} />
   return (
     <img
       className="sign-image"
@@ -49,6 +71,9 @@ function Photo({ sign }: { sign: Sign }) {
   )
 }
 
+/** Les mots sont plus longs qu'une lettre : on réduit la taille d'affichage. */
+const signLabelClass = (sign: Sign) => (sign.label.length > 3 ? 'sign-label word' : 'sign-label')
+
 function feedbackFor(live: Live, flash: boolean, detailed: boolean): string {
   if (flash) return 'Bravo !'
   if (!live.hand) return 'Montre ta main devant la caméra.'
@@ -57,6 +82,22 @@ function feedbackFor(live: Live, flash: boolean, detailed: boolean): string {
   if (m.score >= SUCCESS_SCORE) return 'Parfait, garde la position !'
   if (!detailed) return m.score >= 0.5 ? 'Presque !' : "Ce n'est pas encore ça."
   return m.advice
+}
+
+/** Petit projecteur dessiné : la main semble projetée en hologramme au-dessus de lui. */
+function Projector() {
+  return (
+    <svg className="holo-base" viewBox="0 0 200 64" aria-hidden="true">
+      <ellipse className="thruster" cx="64" cy="58" rx="16" ry="4" />
+      <ellipse className="thruster" cx="136" cy="58" rx="16" ry="4" />
+      <ellipse className="emitter" cx="100" cy="14" rx="58" ry="7" />
+      <rect className="pod" x="14" y="26" width="16" height="18" rx="6" />
+      <rect className="pod" x="170" y="26" width="16" height="18" rx="6" />
+      <rect className="body" x="26" y="16" width="148" height="34" rx="13" />
+      <rect className="window-frame" x="46" y="23" width="108" height="20" rx="7" />
+      <rect className="window" x="50" y="26" width="100" height="14" rx="5" />
+    </svg>
+  )
 }
 
 interface Props {
@@ -76,13 +117,14 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   const [question, setQuestion] = useState(0)
   const [hintLevel, setHintLevel] = useState(0)
   const [answers, setAnswers] = useState<Answer[]>([])
+  const [count, setCount] = useState(3)
   const [flash, setFlash] = useState(false)
   const flashTimer = useRef<number | undefined>(undefined)
 
   const current = phase === 'learn' ? learnSequence[pos] : phase === 'quiz' ? order[question] : undefined
   // Un signe à mouvement sans suivi prévu se valide à la main ; sinon la caméra le suit.
   const target = current && (!current.motion || current.move) ? current : null
-  const cameraOn = phase === 'learn' || phase === 'quizIntro' || phase === 'quiz'
+  const cameraOn = phase === 'learn' || phase === 'countdown' || phase === 'quiz'
 
   useEffect(() => () => window.clearTimeout(flashTimer.current), [])
 
@@ -105,7 +147,10 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
 
   const nextLearn = () => {
     if (pos + 1 < learnSequence.length) setPos(pos + 1)
-    else setPhase('quizIntro')
+    else {
+      setCount(3)
+      setPhase('countdown')
+    }
   }
 
   const confirmQuestion = () => finishQuestion(hintLevel > 0 ? 'hint' : 'ok')
@@ -116,20 +161,27 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
     else if (phase === 'quiz') confirmQuestion()
   }
 
-  const { videoRef, canvasRef, status, error, live } = useHandTracking(cameraOn, target, onSuccess)
+  const { videoRef, canvasRef, status, error, live, aspect, size } = useHandTracking(cameraOn, target, onSuccess)
 
   const startLearning = () => {
     setPos(0)
     setPhase('learn')
   }
 
-  const startQuiz = () => {
+  const startQuiz = useCallback(() => {
     setOrder(shuffle(signs))
     setQuestion(0)
     setHintLevel(0)
     setAnswers([])
     setPhase('quiz')
-  }
+  }, [signs])
+
+  // Décompte 3, 2, 1, puis « QUIZZ ! » (count = 0) avant de lancer l'interro toute seule.
+  useEffect(() => {
+    if (phase !== 'countdown') return
+    const timer = window.setTimeout(() => (count > 0 ? setCount(count - 1) : startQuiz()), 1000)
+    return () => window.clearTimeout(timer)
+  }, [phase, count, startQuiz])
 
   const inQuiz = phase === 'quiz'
   const detailed = !inQuiz || hintLevel > 0
@@ -146,12 +198,18 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
       ? feedbackFor(live, flash, detailed)
       : ''
 
+  const learnMood: Mood = flash ? 'fier' : live.hand && live.match && live.match.score < 0.5 ? 'inquiet' : 'heureux'
+  const quizMood: Mood = flash ? 'fier' : hintLevel > 0 ? 'decu' : 'anxieux'
+
   return (
     <>
       {phase === 'intro' && (
         <section className="card intro">
           <h2>{lesson.title}</h2>
           <p className="lesson-letters">{lesson.subtitle}</p>
+          <Mascot mood="heureux">
+            Salut ! On va apprendre ça ensemble : fais chaque signe devant la caméra, je te dis lequel.
+          </Mascot>
           <ol>
             <li>
               Tu fais les signes un par un, en regardant l'image, et tu recommences {REPETITIONS} fois la série. Tu
@@ -160,11 +218,6 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             <li>Ensuite, une petite interro : on te donne un signe à retrouver, sans image.</li>
             <li>Si tu bloques, tu peux demander un indice.</li>
           </ol>
-          <p className="privacy">
-            <strong>Ta vie privée :</strong> la caméra sert uniquement à repérer ta main. Ton visage et ton
-            arrière-plan ne sont jamais affichés, et aucune image n'est enregistrée ni envoyée : tout se passe
-            dans ton navigateur. Seul le tracé de ta main apparaît à l'écran.
-          </p>
           <div className="actions center">
             <button type="button" className="primary" onClick={startLearning}>
               Commencer
@@ -180,6 +233,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
         <section className="card result">
           <h2>Interro terminée !</h2>
           <Stars count={starsFor(answers)} size={56} />
+          <Mascot mood={resultMood(answers)}>{RESULT_LINE[starsFor(answers)]}</Mascot>
           <p className="big-score">
             {answers.filter((a) => a.outcome === 'ok').length} / {answers.length} sans aide
           </p>
@@ -222,9 +276,17 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
                   )
                 })}
               </div>
-              <div className="sign-label">{current.label}</div>
+              <div className={signLabelClass(current)}>{current.label}</div>
               <Photo sign={current} />
-              <p>{current.hint}</p>
+              <Mascot mood={learnMood}>
+                {flash ? (
+                  'Bravo !'
+                ) : (
+                  <>
+                    Fais le signe « {current.label} » : {current.hint}
+                  </>
+                )}
+              </Mascot>
               <div className="actions center">
                 <button type="button" className={current.motion ? undefined : 'ghost'} onClick={nextLearn}>
                   {current.motion ? "J'ai fait le signe" : 'Signe suivant'}
@@ -233,16 +295,17 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             </>
           )}
 
-          {phase === 'quizIntro' && (
+          {phase === 'countdown' && (
             <>
-              <h2>Bravo, cours terminé !</h2>
-              <p>
-                Place à l'interro : {signs.length} signes dans le désordre. Les images sont cachées, mais tu peux
-                demander un indice.
-              </p>
-              <button type="button" className="primary" onClick={startQuiz}>
-                Démarrer l'interro
-              </button>
+              <h2>Cours terminé !</h2>
+              <div className={count > 0 ? 'countdown' : 'countdown quizz'} key={count} role="timer" aria-live="assertive">
+                {count > 0 ? count : 'QUIZZ !'}
+              </div>
+              <Mascot mood={count > 0 ? 'anxieux' : 'fier'}>
+                {count > 0
+                  ? `Respire, l'interro démarre : ${signs.length} signes dans le désordre, sans image !`
+                  : 'Go ! Montre-moi ce que tu sais faire.'}
+              </Mascot>
             </>
           )}
 
@@ -253,8 +316,16 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               </h2>
               <ProgressBar value={question / order.length} label="Progression de l'interro" />
               <p>Fais le signe de</p>
-              <div className="sign-label">{current.label}</div>
-              {hintLevel >= 1 && <p className="hint">Indice : {current.hint}</p>}
+              <div className={signLabelClass(current)}>{current.label}</div>
+              <Mascot mood={quizMood}>
+                {flash ? (
+                  'Bravo !'
+                ) : hintLevel >= 1 ? (
+                  <>Indice : {current.hint}</>
+                ) : (
+                  'À toi ! Montre-moi le signe.'
+                )}
+              </Mascot>
               {hintLevel >= 2 && <Photo sign={current} />}
               <div className="actions center">
                 {hintLevel < 2 && (
@@ -276,11 +347,44 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
         </section>
 
         <section className="card camera">
-          <div className="hand-wrap">
-            <video ref={videoRef} className="hidden-video" playsInline muted />
-            <canvas ref={canvasRef} />
-            {status === 'loading' && <div className="overlay">Chargement du suivi de la main…</div>}
-            {status === 'error' && <div className="overlay error">Caméra indisponible : {error}</div>}
+          <div className="holo-row">
+            <div className="hand-wrap" style={{ aspectRatio: aspect, '--aspect': aspect } as CSSProperties}>
+              {/* Invisible, y compris si la feuille de style n'est pas chargée : seule la main est tracée. */}
+              <video
+                ref={videoRef}
+                className="hidden-video"
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                playsInline
+                muted
+              />
+              <div className="holo-beam" />
+              <canvas ref={canvasRef} />
+              <div className="scanlines" />
+              <Projector />
+              {status === 'loading' && <div className="overlay">Chargement du suivi de la main…</div>}
+              {status === 'error' && <div className="overlay error">Caméra indisponible : {error}</div>}
+            </div>
+
+            <div className="debug">
+              <p className="debug-title">Ce que la caméra voit</p>
+              {size && (
+                <p className="debug-meta">
+                  Image reçue : {size.width} × {size.height}
+                </p>
+              )}
+              {FINGER_NAMES.map((name, i) => {
+                const percent = Math.round((live.values?.[i] ?? 0) * 100)
+                return (
+                  <div key={name} className="debug-row">
+                    <span className="debug-name">{name}</span>
+                    <span className="debug-value">{percent} %</span>
+                    <div className="meter">
+                      <div className="meter-bar" style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
           {detailed && target && !current?.motion && (
             <div className="meter" aria-label="Précision du signe">
@@ -293,24 +397,6 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
           <p className="feedback" role="status">
             {feedback}
           </p>
-          <p className="privacy small">
-            Seule ta main est suivie : ni ton visage ni ton arrière-plan ne sont affichés, rien n'est enregistré.
-          </p>
-          {live.match && (
-            <details className="debug">
-              <summary>Ce que la caméra voit</summary>
-              {['pouce', 'index', 'majeur', 'annulaire', 'auriculaire'].map((name, i) => (
-                <div key={name} className="debug-row">
-                  <span>
-                    {name} {Math.round(live.match!.values[i] * 100)} %
-                  </span>
-                  <div className="meter">
-                    <div className="meter-bar" style={{ width: `${Math.round(live.match!.values[i] * 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </details>
-          )}
         </section>
       </div>
     </>
