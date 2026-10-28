@@ -9,6 +9,6 @@ export async function createHandTracker(): Promise<HandLandmarker> {
   return HandLandmarker.createFromOptions(vision, {
     baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
     runningMode: 'VIDEO',
-    numHands: 1,
+    numHands: 2,
   })
 }

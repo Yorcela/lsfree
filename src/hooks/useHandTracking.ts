@@ -2,7 +2,7 @@ import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision'
 import { useEffect, useRef, useState } from 'react'
 import { drawHand } from '../lib/drawHand'
 import { createHandTracker } from '../lib/handTracker'
-import { matchSign, normalize, type Match } from '../lib/landmarks'
+import { matchHands, normalize, type DetectedHand, type Match } from '../lib/landmarks'
 import type { Sign } from '../lib/signs'
 
 /** Score à partir duquel le signe est considéré comme juste. */
@@ -79,16 +79,19 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
             canvas.height = video.videoHeight
             ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-            const landmarks = result.landmarks[0]
-            if (landmarks) {
+            const detected: DetectedHand[] = result.landmarks.map((landmarks, i) => {
               drawHand(ctx, landmarks, canvas.width, canvas.height)
               drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: '#7c3aed', lineWidth: 6 })
               drawing.drawLandmarks(landmarks, { color: '#ffffff', fillColor: '#7c3aed', radius: 5 })
+              const handedness = result.handedness[i][0].categoryName as 'Left' | 'Right'
+              return { landmarks, shape: normalize(landmarks, handedness) }
+            })
+
+            if (detected.length > 0) {
 
               const t = targetRef.current
               if (t) {
-                const handedness = result.handedness[0][0].categoryName as 'Left' | 'Right'
-                const match = matchSign(normalize(landmarks, handedness), t)
+                const match = matchHands(detected, t)
                 if (match.score < RELEASE_SCORE) armedRef.current = true
                 goodFramesRef.current = armedRef.current && match.score >= SUCCESS_SCORE ? goodFramesRef.current + 1 : 0
                 if (goodFramesRef.current >= SUCCESS_FRAMES) {
