@@ -44,7 +44,7 @@ export const VOWELS: Sign[] = [
   { id: 'a', label: 'A', hint: 'Poing fermé, pouce tendu sur le côté.', fingers: [0.8, 0, 0, 0, 0] },
   { id: 'e', label: 'E', hint: 'Doigts repliés en griffe, pouce plié sous les doigts.', fingers: [0.1, 0.35, 0.35, 0.35, 0.35] },
   { id: 'i', label: 'I', hint: 'Poing fermé, auriculaire tendu.', fingers: [0, 0, 0, 0, 1] },
-  { id: 'o', label: 'O', hint: 'Doigts arrondis, le pouce touche le bout des doigts pour former un « O ».', fingers: [0.5, 0.5, 0.5, 0.5, 0.5], pinch: true },
+  { id: 'o', label: 'O', hint: 'Doigts arrondis, le pouce touche le bout des doigts pour former un « O ».', fingers: [0.5, 0.5, 0.5, 0.5, 0.5], pinch: true, ignore: [0, 1] },
   { id: 'u', label: 'U', hint: 'Index et majeur tendus et collés, autres doigts repliés.', fingers: [0, 1, 1, 0, 0], spread: 'tight' },
   { id: 'y', label: 'Y', hint: 'Pouce et auriculaire tendus, les trois autres doigts repliés.', fingers: [0.8, 0, 0, 0, 1] },
 ]
@@ -52,8 +52,8 @@ export const VOWELS: Sign[] = [
 export const CONSONANTS: Sign[] = [
   { id: 'b', label: 'B', hint: 'Main ouverte et droite, doigts serrés et tendus vers le haut, pouce replié sur la paume.', fingers: [0.1, 1, 1, 1, 1], orientation: 'up' },
   { id: 'c', label: 'C', hint: 'Main en forme de « C » : doigts arrondis, pouce opposé aux doigts.', fingers: [0.6, 0.5, 0.5, 0.5, 0.5], pinch: false },
-  { id: 'd', label: 'D', hint: 'Index tendu vers le haut, les autres doigts arrondis, le pouce touche le majeur.', fingers: [0.3, 1, 0.5, 0.5, 0.5] },
-  { id: 'f', label: 'F', hint: "Le pouce et l'index se touchent en cercle, les trois autres doigts sont tendus et écartés.", fingers: [0.5, 0.5, 1, 1, 1], pinch: true },
+  { id: 'd', label: 'D', hint: 'Index tendu vers le haut, les autres doigts arrondis, le pouce touche le majeur.', fingers: [0.3, 1, 0.15, 0.15, 0.15], ignore: [0] },
+  { id: 'f', label: 'F', hint: "Le pouce et l'index se touchent en cercle, les trois autres doigts sont tendus et écartés.", fingers: [0.1, 0.1, 1, 1, 1], pinch: true, ignore: [0, 1] },
   { id: 'g', label: 'G', hint: 'Index tendu vers le haut, les autres doigts et le pouce repliés.', fingers: [0.1, 1, 0, 0, 0] },
   { id: 'h', label: 'H', hint: 'Index et auriculaire tendus, majeur et annulaire repliés.', fingers: [0.1, 1, 0, 0, 1] },
   { id: 'j', label: 'J', hint: 'Pouce et auriculaire tendus : la main pivote et trace un « J » dans l\'air, comme la flèche.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'j' }, ignoreShape: true },
@@ -84,7 +84,7 @@ const hand = (fingers: FingerValues, pinch?: boolean): HandDrawing => ({ fingers
 
 /** Chiffres : de 0 à 5 avec une main, de 6 à 9 une main fait 5 et l'autre fait 1, 2, 3 ou 4. */
 export const DIGITS: Sign[] = [
-  { id: '0', label: '0', hint: "Le pouce et l'index se touchent en cercle, les autres doigts sont arrondis.", fingers: ZERO, pinch: true, hands: [hand(ZERO, true)] },
+  { id: '0', label: '0', hint: "Le pouce et l'index se touchent en cercle, les autres doigts sont arrondis.", fingers: ZERO, pinch: true, ignore: [0, 1], hands: [hand(ZERO, true)] },
   { id: '1', label: '1', hint: 'Poing fermé, pouce levé.', fingers: ONE, hands: [hand(ONE)] },
   { id: '2', label: '2', hint: 'Pouce et index tendus, les autres doigts repliés.', fingers: TWO, hands: [hand(TWO)] },
   { id: '3', label: '3', hint: 'Pouce, index et majeur tendus, annulaire et auriculaire repliés.', fingers: THREE, hands: [hand(THREE)] },

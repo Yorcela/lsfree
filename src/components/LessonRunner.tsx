@@ -7,29 +7,17 @@ import { Mascot, type Mood } from './Mascot'
 import { ProgressBar } from './ProgressBar'
 import { SignDiagram } from './SignDiagram'
 import { Stars } from './Stars'
+import { starsFor, type Answer, type Outcome } from '../lib/scoring'
 import { HAND_SPRITES, REPETITIONS, type Sign } from '../lib/signs'
 
 type Phase = 'intro' | 'learn' | 'countdown' | 'quiz' | 'result'
 
 const FINGER_NAMES = ['pouce', 'index', 'majeur', 'annulaire', 'auriculaire']
-type Outcome = 'ok' | 'hint' | 'skipped'
-interface Answer {
-  sign: Sign
-  outcome: Outcome
-}
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
   ok: 'Réussi seul',
   hint: 'Réussi avec indice',
   skipped: 'Passé',
-}
-
-/** Étoiles de l'interro : 3 si presque tout est réussi seul, 2 si environ la moitié (un indice compte pour demi), 1 sinon. */
-function starsFor(answers: Answer[]): number {
-  if (answers.length === 0) return 0
-  const points = answers.reduce((sum, a) => sum + (a.outcome === 'ok' ? 1 : a.outcome === 'hint' ? 0.5 : 0), 0)
-  const ratio = points / answers.length
-  return ratio >= 0.9 ? 3 : ratio >= 0.5 ? 2 : 1
 }
 
 /** Humeur de la mascotte à la fin de l'interro : amoureuse pour 3 étoiles, fière pour 2, puis déçue ou découragée. */
@@ -45,7 +33,12 @@ const RESULT_LINE: Record<number, string> = {
   3: 'Parfait ! Tu maîtrises ces signes.',
   2: "Bien joué ! Encore un peu d'entraînement et ce sera parfait.",
   1: "L'interro est finie. Revois le cours, tu vas y arriver !",
+  0: "Presque aucun signe réussi cette fois : revois le cours et réessaie, aucune étoile n'est gagnée sans signe réussi.",
 }
+
+/** La phrase de fin de la mascotte ; un quiz sans cours renvoie vers les leçons. */
+const resultLine = (stars: number, quizOnly?: boolean) =>
+  RESULT_LINE[stars].replaceAll('le cours', quizOnly ? 'les leçons' : 'le cours')
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items]
@@ -168,6 +161,16 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
     setPhase('learn')
   }
 
+  // Un quiz sans cours part directement sur le décompte ; sinon on commence par l'apprentissage.
+  const begin = () => {
+    if (lesson.quizOnly) {
+      setCount(3)
+      setPhase('countdown')
+    } else {
+      startLearning()
+    }
+  }
+
   const startQuiz = useCallback(() => {
     setOrder(shuffle(signs))
     setQuestion(0)
@@ -207,19 +210,28 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
         <section className="card intro">
           <h2>{lesson.title}</h2>
           <p className="lesson-letters">{lesson.subtitle}</p>
-          <Mascot mood="heureux">
-            Salut ! On va apprendre ça ensemble : fais chaque signe devant la caméra, je te dis lequel.
+          <Mascot mood={lesson.quizOnly ? 'anxieux' : 'heureux'}>
+            {lesson.quizOnly
+              ? "Le grand quiz ! Tu as tout appris, montre-moi que tu t'en souviens."
+              : 'Salut ! On va apprendre ça ensemble : fais chaque signe devant la caméra, je te dis lequel.'}
           </Mascot>
-          <ol>
-            <li>
-              Tu fais les signes un par un, en regardant l'image, et tu recommences {REPETITIONS} fois la série. Tu
-              peux passer au signe suivant quand tu veux.
-            </li>
-            <li>Ensuite, une petite interro : on te donne un signe à retrouver, sans image.</li>
-            <li>Si tu bloques, tu peux demander un indice.</li>
-          </ol>
+          {lesson.quizOnly ? (
+            <p>
+              Les {signs.length} signes dans le désordre, sans image : à toi de les retrouver. Si tu bloques, tu peux
+              demander un indice ou passer au suivant.
+            </p>
+          ) : (
+            <ol>
+              <li>
+                Tu fais les signes un par un, en regardant l'image, et tu recommences {REPETITIONS} fois la série. Tu
+                peux passer au signe suivant quand tu veux.
+              </li>
+              <li>Ensuite, une petite interro : on te donne un signe à retrouver, sans image.</li>
+              <li>Si tu bloques, tu peux demander un indice.</li>
+            </ol>
+          )}
           <div className="actions center">
-            <button type="button" className="primary" onClick={startLearning}>
+            <button type="button" className="primary" onClick={begin}>
               Commencer
             </button>
             <button type="button" className="ghost" onClick={onExit}>
@@ -233,7 +245,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
         <section className="card result">
           <h2>Interro terminée !</h2>
           <Stars count={starsFor(answers)} size={56} />
-          <Mascot mood={resultMood(answers)}>{RESULT_LINE[starsFor(answers)]}</Mascot>
+          <Mascot mood={resultMood(answers)}>{resultLine(starsFor(answers), lesson.quizOnly)}</Mascot>
           <p className="big-score">
             {answers.filter((a) => a.outcome === 'ok').length} / {answers.length} sans aide
           </p>
@@ -248,9 +260,11 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
             <button type="button" className="primary" onClick={startQuiz}>
               Refaire l'interro
             </button>
-            <button type="button" className="ghost" onClick={startLearning}>
-              Revoir le cours
-            </button>
+            {!lesson.quizOnly && (
+              <button type="button" className="ghost" onClick={startLearning}>
+                Revoir le cours
+              </button>
+            )}
             <button type="button" className="ghost" onClick={onExit}>
               Retour au menu
             </button>
@@ -297,7 +311,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
 
           {phase === 'countdown' && (
             <>
-              <h2>Cours terminé !</h2>
+              <h2>{lesson.quizOnly ? 'Le grand quiz !' : 'Cours terminé !'}</h2>
               <div className={count > 0 ? 'countdown' : 'countdown quizz'} key={count} role="timer" aria-live="assertive">
                 {count > 0 ? count : 'QUIZZ !'}
               </div>

@@ -6,7 +6,7 @@ const WRIST = { x: 0.5, y: 0.8 }
 const SCALE = 0.18 // distance poignet → base du majeur, dans l'image
 
 /** Main fabriquée, vue de face et droite : seuls les repères utilisés par la détection sont réalistes. */
-function makeHand(fingers: FingerValues): Point[] {
+function makeHand(fingers: FingerValues, pinch = false): Point[] {
   const points: Point[] = Array.from({ length: 21 }, () => ({ x: WRIST.x, y: WRIST.y, z: 0 }))
   const mcpX = [0.43, 0.5, 0.56, 0.62] // index, majeur, annulaire, auriculaire
   const tips = [8, 12, 16, 20]
@@ -20,12 +20,14 @@ function makeHand(fingers: FingerValues): Point[] {
   // Bout du pouce : près de la base de l'index s'il est replié, loin sur le côté s'il est tendu.
   const thumbReach = 0.02 + fingers[0] * 0.14
   points[4] = { x: mcpX[0] - thumbReach, y: points[5].y - thumbReach * 0.4, z: 0 }
+  // Pouce et index qui se touchent : le bout du pouce rejoint le bout de l'index.
+  if (pinch) points[4] = { x: points[8].x + 0.01, y: points[8].y, z: 0 }
   return points
 }
 
-const score = (id: string, fingers: FingerValues) => {
+const score = (id: string, fingers: FingerValues, pinch = false) => {
   const sign = [...VOWELS, ...CONSONANTS].find((s) => s.id === id)!
-  const landmarks = makeHand(fingers)
+  const landmarks = makeHand(fingers, pinch)
   return matchSign(normalize(landmarks, 'Right'), sign, landmarks).score
 }
 
@@ -45,6 +47,37 @@ describe('détection des formes de main', () => {
 
   it('reconnaît le W : trois doigts tendus', () => {
     expect(score('w', [0, 1, 1, 1, 0])).toBeGreaterThanOrEqual(0.7)
+  })
+})
+
+/**
+ * Mesures relevées sur une vraie webcam (panneau « Ce que la caméra voit »), qui ont montré
+ * que les règles de départ étaient trop strictes pour D, F et O.
+ */
+describe('signes validés avec des mesures réelles', () => {
+  it('D : index tendu, trois autres doigts serrés (9 %, 0 %, 0 %)', () => {
+    expect(score('d', [0.21, 1, 0.17, 0, 0])).toBeGreaterThanOrEqual(0.7)
+  })
+
+  it('D : refuse un majeur tendu', () => {
+    expect(score('d', [0.21, 1, 1, 0, 0])).toBeLessThan(0.7)
+  })
+
+  it('F : cercle pouce-index (index lu à 0 %), trois doigts tendus', () => {
+    expect(score('f', [0.06, 0, 1, 1, 0.99], true)).toBeGreaterThanOrEqual(0.7)
+  })
+
+  it('F : refuse quand le pouce et l’index ne se touchent pas', () => {
+    expect(score('f', [1, 0, 1, 1, 1], false)).toBeLessThan(0.7)
+  })
+
+  it('F : refuse un annulaire replié', () => {
+    expect(score('f', [0.06, 0, 1, 0, 0.99], true)).toBeLessThan(0.7)
+  })
+
+  it('O : cercle pouce-doigts, quelle que soit la position exacte de l’index', () => {
+    expect(score('o', [0.1, 0.1, 0.5, 0.5, 0.5], true)).toBeGreaterThanOrEqual(0.7)
+    expect(score('o', [0.1, 0.5, 0.5, 0.5, 0.5], true)).toBeGreaterThanOrEqual(0.7)
   })
 })
 

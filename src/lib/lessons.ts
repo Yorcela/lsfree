@@ -6,6 +6,10 @@ export interface Lesson {
   title: string
   subtitle: string
   signs: Sign[]
+  /** Pas d'apprentissage : on passe directement à l'interro (décompte puis questions). */
+  quizOnly?: boolean
+  /** Leçons à terminer (au moins une étoile chacune) avant de pouvoir commencer celle-ci. */
+  requires?: string[]
 }
 
 function pick(ids: string): Sign[] {
@@ -58,3 +62,21 @@ export const ALPHABET_LESSONS: Lesson[] = [
   lesson('consonnes-3', 'Consonnes 3', pick('n p q r s')),
   lesson('consonnes-4', 'Consonnes 4', pick('t v w x z')),
 ]
+
+/** Le grand quiz : les 26 lettres dans le désordre, débloqué quand chaque leçon de l'alphabet a au moins une étoile. */
+export const ALPHABET_QUIZ: Lesson = {
+  id: 'alphabet-quiz',
+  title: "Quiz de l'alphabet",
+  subtitle: 'A à Z',
+  signs: ALPHABET,
+  quizOnly: true,
+  requires: ALPHABET_LESSONS.map((l) => l.id),
+}
+
+/** Leçons exigées par `lesson` qui n'ont pas encore au moins une étoile. */
+export function missingRequirements(lesson: Lesson, stars: Record<string, number>): Lesson[] {
+  const all = [...ALPHABET_LESSONS, ...NUMBER_LESSONS, ...WORD_LESSONS]
+  return (lesson.requires ?? [])
+    .filter((id) => (stars[id] ?? 0) < 1)
+    .map((id) => all.find((l) => l.id === id)!)
+}

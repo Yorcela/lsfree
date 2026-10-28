@@ -3,7 +3,16 @@ import { LessonRunner } from './components/LessonRunner'
 import { Mascot } from './components/Mascot'
 import { ProgressBar } from './components/ProgressBar'
 import { Stars } from './components/Stars'
-import { ALPHABET_LESSONS, NUMBER_LESSONS, WORD_LESSONS, nameLetters, presentationLesson, type Lesson } from './lib/lessons'
+import {
+  ALPHABET_LESSONS,
+  ALPHABET_QUIZ,
+  NUMBER_LESSONS,
+  WORD_LESSONS,
+  missingRequirements,
+  nameLetters,
+  presentationLesson,
+  type Lesson,
+} from './lib/lessons'
 import { loadName, loadStars, saveName, saveStars, type StarsMap } from './lib/progress'
 import { ALPHABET } from './lib/signs'
 
@@ -15,16 +24,33 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'mots', label: 'Mots' },
 ]
 
-function LessonGrid({ lessons, stars, onOpen }: { lessons: Lesson[]; stars: StarsMap; onOpen: (l: Lesson) => void }) {
+interface LessonGridProps {
+  lessons: Lesson[]
+  stars: StarsMap
+  onOpen: (l: Lesson) => void
+  /** Si la leçon est verrouillée, la raison à afficher ; sinon null. */
+  lockedReason?: (l: Lesson) => string | null
+}
+
+function LessonGrid({ lessons, stars, onOpen, lockedReason }: LessonGridProps) {
   return (
     <div className="lesson-grid">
-      {lessons.map((l) => (
-        <button key={l.id} type="button" className="lesson-card" onClick={() => onOpen(l)}>
-          <span className="lesson-title">{l.title}</span>
-          <span className="lesson-letters">{l.subtitle}</span>
-          <Stars count={stars[l.id] ?? 0} size={30} />
-        </button>
-      ))}
+      {lessons.map((l) => {
+        const reason = lockedReason?.(l) ?? null
+        return (
+          <button
+            key={l.id}
+            type="button"
+            className={reason ? 'lesson-card locked' : 'lesson-card'}
+            disabled={reason !== null}
+            onClick={() => onOpen(l)}
+          >
+            <span className="lesson-title">{l.title}</span>
+            <span className="lesson-letters">{l.subtitle}</span>
+            {reason ? <span className="lesson-lock">{reason}</span> : <Stars count={stars[l.id] ?? 0} size={30} />}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -38,9 +64,17 @@ function App() {
   const presentation = useMemo(() => presentationLesson(name), [name])
   const wordLessons = useMemo(() => [...WORD_LESSONS, presentation], [presentation])
   const allLessons = useMemo(
-    () => [...ALPHABET_LESSONS, ...NUMBER_LESSONS, ...wordLessons],
+    () => [...ALPHABET_LESSONS, ALPHABET_QUIZ, ...NUMBER_LESSONS, ...wordLessons],
     [wordLessons],
   )
+
+  const lockedReason = (l: Lesson): string | null => {
+    const missing = missingRequirements(l, stars)
+    if (missing.length === 0) return null
+    return missing.length === 1
+      ? `Verrouillé : il te manque « ${missing[0].title} » (au moins 1 étoile)`
+      : `Verrouillé : il te manque ${missing.length} leçons de l'alphabet (au moins 1 étoile chacune)`
+  }
 
   const changeName = (value: string) => {
     const clean = value.replace(/[^\p{L} '-]/gu, '').slice(0, 20)
@@ -105,6 +139,7 @@ function App() {
       {!lesson && tab === 'alphabet' && (
         <>
           <LessonGrid lessons={ALPHABET_LESSONS} stars={stars} onOpen={setLesson} />
+          <LessonGrid lessons={[ALPHABET_QUIZ]} stars={stars} onOpen={setLesson} lockedReason={lockedReason} />
 
           <details className="gallery">
             <summary>Aide-mémoire : tous les signes de l'alphabet</summary>
