@@ -60,5 +60,8 @@ export const ME: Sign = {
   hint: "L'index se pointe vers ta poitrine : c'est « moi », « je ».",
   fingers: POINT,
   motion: true,
+  // Le doigt pointe vers le torse, loin de la caméra : on ne juge que le mouvement de la main.
+  move: { kind: 'any' },
+  ignoreShape: true,
   diagram: { hand: POINT, from: 'front', to: 'chest' },
 }

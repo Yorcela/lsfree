@@ -8,11 +8,11 @@ const MOTION_ARROWS: Record<string, string> = {
 }
 
 /** La main robot d'une lettre, avec sa flèche de mouvement quand il y en a une. */
-export function HandSprite({ sign }: { sign: Sign }) {
+export function HandSprite({ sign, file }: { sign: Sign; file?: string }) {
   const arrow = MOTION_ARROWS[sign.id]
   return (
     <div className="sprite">
-      <img className="sprite-img" src={`./hands/${sign.id}.png`} alt={`Signe de la lettre ${sign.label}`} />
+      <img className="sprite-img" src={`./hands/${file ?? sign.id}.png`} alt={`Signe « ${sign.label} »`} />
       {arrow && (
         <svg className="sprite-arrow" viewBox="0 0 54 70" role="img" aria-label="Sens du mouvement">
           <defs>

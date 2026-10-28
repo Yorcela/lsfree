@@ -38,6 +38,8 @@ export interface Sign extends SignSpec {
   arrow?: 'up' | 'down' | 'together'
   /** Schéma animé du corps et de la main : pour les mots, dont la place sur le visage compte. */
   diagram?: DiagramSpec
+  /** Nom de la main robot à montrer (public/hands/<nom>.png) quand l'identifiant du signe n'est pas une lettre. */
+  sprite?: string
 }
 
 export const VOWELS: Sign[] = [
@@ -59,8 +61,8 @@ export const CONSONANTS: Sign[] = [
   { id: 'j', label: 'J', hint: 'Pouce et auriculaire tendus : la main pivote et trace un « J » dans l\'air, comme la flèche.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'path', path: 'j' }, ignoreShape: true },
   { id: 'k', label: 'K', hint: 'Index et majeur tendus, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0] },
   { id: 'l', label: 'L', hint: 'Index et pouce tendus à angle droit, autres doigts repliés.', fingers: [0.9, 1, 0, 0, 0] },
-  { id: 'm', label: 'M', hint: "Main à plat, à l'horizontale, doigts tendus et serrés, pouce replié.", fingers: [0.1, 1, 1, 1, 1], orientation: 'side' },
-  { id: 'n', label: 'N', hint: "Index et majeur tendus et serrés, à l'horizontale, autres doigts repliés.", fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'side' },
+  { id: 'm', label: 'M', hint: "Main à plat, à l'horizontale, doigts tendus et serrés, pouce replié.", fingers: [0.1, 1, 1, 1, 1], ignore: [0], orientation: 'side' },
+  { id: 'n', label: 'N', hint: "Index et majeur tendus et serrés, à l'horizontale, autres doigts repliés.", fingers: [0.1, 1, 1, 0, 0], ignore: [0], spread: 'tight', orientation: 'side' },
   { id: 'p', label: 'P', hint: 'La main pointée vers le bas hoche vers le bas, comme la flèche.', fingers: [0, 0, 0, 0, 0], motion: true, move: { kind: 'pivot-down' }, ignoreShape: true },
   { id: 'q', label: 'Q', hint: 'Index pointé vers le bas, autres doigts repliés.', fingers: [0.1, 1, 0, 0, 0], orientation: 'down' },
   { id: 'r', label: 'R', hint: 'Index et majeur croisés, autres doigts repliés.', fingers: [0.1, 1, 1, 0, 0], spread: 'tight', orientation: 'up' },
@@ -145,6 +147,96 @@ export const NUMBERS: Sign[] = [
     arrow: 'down',
   })),
 ]
+
+/** 20 : pouce et index en pince fermée, avec un petit mouvement du poignet. */
+export const TWENTY: Sign = {
+  id: '20',
+  label: '20',
+  hint: 'Pouce et index en pince fermée, les autres doigts repliés, avec un petit mouvement du poignet.',
+  fingers: [0.1, 0.1, 0, 0, 0],
+  pinch: true,
+  ignore: [0, 1],
+  motion: true,
+  move: { kind: 'any' },
+  hands: [hand([0.3, 0.2, 0, 0, 0], true)],
+}
+
+/** Un signe de dizaine : le signe du chiffre correspondant, avec un mouvement de fermeture et d'ouverture. */
+const tens = (digit: Sign, label: string): Sign => ({
+  ...digit,
+  id: label,
+  label,
+  hint: `Le signe du ${digit.label}, avec un mouvement de fermeture et d'ouverture de la main.`,
+  motion: true,
+  move: { kind: 'any' },
+})
+
+/**
+ * Dizaines de 30 à 100. Les signes varient selon les régions : à confirmer avec une personne sourde. On ne retient
+ * ici que la règle « signe du chiffre + mouvement de pince » ; la caméra vérifie la forme et un mouvement.
+ */
+export const TENS: Sign[] = [
+  tens(DIGITS[3], '30'),
+  tens(DIGITS[4], '40'),
+  tens(DIGITS[5], '50'),
+  tens(DIGITS[6], '60'),
+  tens(DIGITS[7], '70'),
+  tens(DIGITS[8], '80'),
+  tens(DIGITS[9], '90'),
+  {
+    id: '100',
+    label: '100',
+    hint: 'Le chiffre 1, puis la lettre C : la main en forme de « C ».',
+    fingers: CONSONANTS.find((s) => s.id === 'c')!.fingers,
+    pinch: false,
+    sprite: 'c',
+  },
+]
+
+const FLAT_HAND: FingerValues = [0.5, 1, 1, 1, 1]
+
+/** Mille et au-delà : la main dominante vient taper dans la paume de l'autre main. */
+const tap = (id: string, label: string, hint: string, kind: 'together' | 'tap-twice'): Sign => ({
+  id,
+  label,
+  hint,
+  fingers: FLAT_HAND,
+  ignore: [0],
+  second: { fingers: FLAT_HAND, ignore: [0] },
+  motion: true,
+  // Pendant le choc, une main cache l'autre : seul le rapprochement des deux mains est jugé.
+  move: { kind },
+  ignoreShape: true,
+  hands: [hand(FLAT_HAND), hand(FLAT_HAND)],
+  arrow: 'together',
+})
+
+/** Grands nombres. Les signes varient selon les régions : à confirmer avec une personne sourde. */
+export const BIG_NUMBERS: Sign[] = [
+  tap('1000', '1000', "Mille : la main dominante vient taper dans la paume de l'autre main.", 'together'),
+  tap('10000', '10 000', 'Le chiffre 10, puis « mille » : la main vient taper dans la paume de l\'autre main.', 'together'),
+  tap('100000', '100 000', 'Le chiffre 100 (1 puis C), puis « mille » : la main vient taper dans la paume de l\'autre main.', 'together'),
+  tap('1000000', '1 million', 'Million : la main vient taper deux fois dans la paume de l\'autre main, en avançant légèrement.', 'tap-twice'),
+]
+
+/** Mains robot qui n'ont pas de lettre : on les réutilise pour les chiffres et les mots. */
+export const EXTRA_SPRITES = ['five']
+
+/**
+ * La main robot qui correspond à une forme de doigts, quand on en a une : le pouce levé (1) est la main du A, le 2 est
+ * celle du L, le 4 celle du B, la main ouverte (5) a son fichier, et l'index levé est celui du D.
+ */
+export function spriteForFingers(fingers: FingerValues): string | undefined {
+  const known: [FingerValues, string][] = [
+    [[0.8, 0, 0, 0, 0], 'a'],
+    [[0.8, 1, 0, 0, 0], 'l'],
+    [[0.1, 1, 1, 1, 1], 'b'],
+    [[0.5, 1, 1, 1, 1], 'b'],
+    [[0.8, 1, 1, 1, 1], 'five'],
+    [[0.1, 1, 0, 0, 0], 'd'],
+  ]
+  return known.find(([f]) => f.every((v, i) => v === fingers[i]))?.[1]
+}
 
 /** Toutes les lettres, dans l'ordre alphabétique. */
 export const ALPHABET: Sign[] = [...VOWELS, ...CONSONANTS].sort((a, b) => a.id.localeCompare(b.id))

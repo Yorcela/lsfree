@@ -1,4 +1,4 @@
-import type { Sign } from '../lib/signs'
+import { spriteForFingers, type Sign } from '../lib/signs'
 
 const FINGER_X = [38, 48.5, 59, 69.5]
 
@@ -43,7 +43,12 @@ export function HandIllustration({ sign }: { sign: Sign }) {
     <div className="sign-illustration" role="img" aria-label={`Signe du ${sign.label}`}>
       {hands.map((h, i) => (
         <span key={i} className="hand-slot">
-          <Hand fingers={h.fingers} pinch={h.pinch} />
+          {/* La main robot quand on en a une pour cette forme, sinon le dessin simple. */}
+          {!h.pinch && spriteForFingers(h.fingers) ? (
+            <img className="hand-sprite" src={`./hands/${spriteForFingers(h.fingers)}.png`} alt="" />
+          ) : (
+            <Hand fingers={h.fingers} pinch={h.pinch} />
+          )}
           {arrow === 'together' && i === 0 && <span className="arrow">→</span>}
           {arrow === 'together' && i === 1 && <span className="arrow">←</span>}
         </span>

@@ -7,6 +7,7 @@ import {
   ALPHABET_LESSONS,
   ALPHABET_QUIZ,
   NUMBER_LESSONS,
+  NUMBER_QUIZ,
   WORD_LESSONS,
   missingRequirements,
   nameLetters,
@@ -64,7 +65,7 @@ function App() {
   const presentation = useMemo(() => presentationLesson(name), [name])
   const wordLessons = useMemo(() => [...WORD_LESSONS, presentation], [presentation])
   const allLessons = useMemo(
-    () => [...ALPHABET_LESSONS, ALPHABET_QUIZ, ...NUMBER_LESSONS, ...wordLessons],
+    () => [...ALPHABET_LESSONS, ALPHABET_QUIZ, ...NUMBER_LESSONS, NUMBER_QUIZ, ...wordLessons],
     [wordLessons],
   )
 
@@ -73,7 +74,7 @@ function App() {
     if (missing.length === 0) return null
     return missing.length === 1
       ? `Verrouillé : il te manque « ${missing[0].title} » (au moins 1 étoile)`
-      : `Verrouillé : il te manque ${missing.length} leçons de l'alphabet (au moins 1 étoile chacune)`
+      : `Verrouillé : il te manque ${missing.length} leçons (au moins 1 étoile chacune)`
   }
 
   const changeName = (value: string) => {
@@ -138,8 +139,12 @@ function App() {
 
       {!lesson && tab === 'alphabet' && (
         <>
-          <LessonGrid lessons={ALPHABET_LESSONS} stars={stars} onOpen={setLesson} />
-          <LessonGrid lessons={[ALPHABET_QUIZ]} stars={stars} onOpen={setLesson} lockedReason={lockedReason} />
+          <LessonGrid
+            lessons={[...ALPHABET_LESSONS, ALPHABET_QUIZ]}
+            stars={stars}
+            onOpen={setLesson}
+            lockedReason={lockedReason}
+          />
 
           <details className="gallery">
             <summary>Aide-mémoire : tous les signes de l'alphabet</summary>
@@ -157,10 +162,16 @@ function App() {
 
       {!lesson && tab === 'chiffres' && (
         <>
-          <LessonGrid lessons={NUMBER_LESSONS} stars={stars} onOpen={setLesson} />
+          <LessonGrid
+            lessons={[...NUMBER_LESSONS, NUMBER_QUIZ]}
+            stars={stars}
+            onOpen={setLesson}
+            lockedReason={lockedReason}
+          />
           <p className="note">
-            De 6 à 9, les signes se font avec les deux mains. Les nombres de 10 à 19 comportent un mouvement,
-            que la caméra suit : suis le trait orange.
+            De 6 à 9, les signes se font avec les deux mains. Les nombres à partir de 10 comportent un mouvement, que
+            la caméra suit (trait orange). Les dizaines et les grands nombres sont à confirmer : les signes varient
+            selon les régions.
           </p>
         </>
       )}

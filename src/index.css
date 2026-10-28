@@ -470,68 +470,79 @@ button.lesson-card.locked {
   letter-spacing: 0.04em;
 }
 
-/* Schéma animé du corps et de la main, pour les mots. */
-.diagram {
-  width: 240px;
-  max-width: 100%;
+/* Schéma animé d'un mot : la mascotte et sa main robot, qui rejoue le geste en boucle. */
+.mascot-diagram {
+  position: relative;
+  display: inline-block;
+  height: 250px;
   margin: 4px 0 8px;
 }
 
-.diagram .body {
-  fill: #0b2038;
-  stroke: var(--cyan);
-  stroke-width: 2;
-  filter: drop-shadow(0 0 4px rgba(61, 230, 255, 0.5));
+.mascot-diagram-body {
+  height: 100%;
+  width: auto;
+  filter: drop-shadow(0 0 12px rgba(61, 230, 255, 0.35));
 }
 
-.diagram .eye {
-  fill: var(--cyan);
+.diagram-hand {
+  position: absolute;
+  width: 34%;
+  height: auto;
+  /* Sans animation, la main reste à sa position d'arrivée. */
+  left: var(--tx);
+  top: var(--ty);
+  transform: translate(-50%, -50%) scale(var(--ts));
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.45));
 }
 
-.diagram .mouth {
-  fill: none;
-  stroke: var(--cyan);
-  stroke-width: 2;
-  stroke-linecap: round;
+.diagram-hand.travel {
+  animation: hand-travel 2.4s ease-in-out infinite;
 }
 
-/* Sans animation, la main reste à sa position d'arrivée. */
-.travel {
-  transform: var(--to);
-  animation: travel 2.4s ease-in-out infinite;
-}
-
-@keyframes travel {
+@keyframes hand-travel {
   0%,
   20% {
-    transform: var(--from);
+    left: var(--fx);
+    top: var(--fy);
+    transform: translate(-50%, -50%) scale(var(--fs));
   }
   80%,
   100% {
-    transform: var(--to);
+    left: var(--tx);
+    top: var(--ty);
+    transform: translate(-50%, -50%) scale(var(--ts));
   }
 }
 
-.wave {
-  transform-box: fill-box;
-  transform-origin: 50% 92%;
-  animation: wave 0.8s ease-in-out infinite alternate;
+/* Au revoir : la main reste devant le robot et se balance. */
+.diagram-hand.wave {
+  left: var(--fx);
+  top: var(--fy);
+  transform-origin: 50% 90%;
+  animation: hand-wave 0.8s ease-in-out infinite alternate;
 }
 
-@keyframes wave {
+@keyframes hand-wave {
   from {
-    transform: rotate(-24deg);
+    transform: translate(-50%, -50%) rotate(-22deg) scale(var(--fs));
   }
   to {
-    transform: rotate(24deg);
+    transform: translate(-50%, -50%) rotate(22deg) scale(var(--fs));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .travel,
-  .wave {
+  .diagram-hand.travel,
+  .diagram-hand.wave {
     animation: none;
   }
+}
+
+/* Main robot des chiffres. */
+.hand-sprite {
+  height: 150px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(61, 230, 255, 0.4)) drop-shadow(0 4px 3px rgba(0, 0, 0, 0.35));
 }
 
 .name-field {

@@ -4,12 +4,19 @@ import { detectMotion, pathDistance, resample, type HandPoint, type Sample } fro
 const SCALE = 0.15
 const FRAME_MS = 33
 
+/** Main fabriquée : la paume est en (x, y), le poignet dessous, et le bout de l'index et de l'auriculaire en (x, y). */
 const hand = (x: number, y: number, extra: Partial<HandPoint> = {}): HandPoint => ({
   x,
   y,
   scale: SCALE,
   tipX: x,
   tipY: y - SCALE,
+  wristX: x,
+  wristY: y + SCALE,
+  indexX: x,
+  indexY: y,
+  pinkyX: x,
+  pinkyY: y,
   ...extra,
 })
 
@@ -112,23 +119,94 @@ describe('deux mains qui se rapprochent', () => {
   })
 })
 
+describe('un déplacement net, sans trajectoire précise', () => {
+  it('accepte une main qui se déplace', () => {
+    const s = track(line([0.4, 0.5], [0.6, 0.55], 12))
+    expect(detectMotion(s, { kind: 'any' }, now(s))).toBe(true)
+  })
+
+  it('accepte une main qui se rapproche du corps (elle rapetisse)', () => {
+    const s: Sample[] = Array.from({ length: 12 }, (_, i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5, 0.5, { scale: 0.18 - i * 0.004 })],
+    }))
+    expect(detectMotion(s, { kind: 'any' }, now(s))).toBe(true)
+  })
+
+  it('ignore une main immobile ou qui tremble', () => {
+    const s = track(Array.from({ length: 15 }, (_, i) => [0.5 + (i % 2) * 0.005, 0.5 + (i % 3) * 0.004]))
+    expect(detectMotion(s, { kind: 'any' }, now(s))).toBe(false)
+  })
+
+  it('ignore un mouvement trop ancien', () => {
+    const s = track(line([0.4, 0.5], [0.6, 0.55], 12))
+    expect(detectMotion(s, { kind: 'any' }, now(s) + 3000)).toBe(false)
+  })
+})
+
+describe('deux mains qui se tapent (mille, million)', () => {
+  /** Écart entre les deux mains à chaque image. */
+  const gaps = (...values: number[]): Sample[] =>
+    values.map((gap, i) => ({ t: i * FRAME_MS, hands: [hand(0.5 - gap / 2, 0.5), hand(0.5 + gap / 2, 0.5)] }))
+  const apart = 0.5
+  const touching = 0.05
+
+  it('un rapprochement suffit pour « mille »', () => {
+    const s = gaps(apart, apart, apart, 0.3, 0.15, touching, touching, touching)
+    expect(detectMotion(s, { kind: 'together' }, now(s))).toBe(true)
+    expect(detectMotion(s, { kind: 'tap-twice' }, now(s))).toBe(false)
+  })
+
+  it('deux rapprochements pour « million »', () => {
+    const s = gaps(apart, apart, 0.3, touching, touching, 0.35, apart, 0.3, touching, touching)
+    expect(detectMotion(s, { kind: 'tap-twice' }, now(s))).toBe(true)
+  })
+
+  it('deux mains qui restent collées ne comptent pas', () => {
+    const s = gaps(touching, touching, touching, touching, touching, touching)
+    expect(detectMotion(s, { kind: 'together' }, now(s))).toBe(false)
+  })
+
+  it("une seule main n'est pas un rapprochement", () => {
+    const s = track(line([0.3, 0.5], [0.5, 0.5], 12))
+    expect(detectMotion(s, { kind: 'together' }, now(s))).toBe(false)
+  })
+})
+
 describe('main qui pivote vers le bas', () => {
-  it('reconnaît des doigts qui passent de horizontal à vers le bas', () => {
-    const s: Sample[] = Array.from({ length: 15 }, (_, i) => {
-      const angle = (i / 14) * (Math.PI / 2) // 0 = à l'horizontale, π/2 = vers le bas
+  /** La main (poignet → paume) tourne de `from` à `to` radians : 0 = vers la droite de l'image, π/2 = vers le bas. */
+  const pivoting = (from: number, to: number, extra: Partial<HandPoint> = {}): Sample[] =>
+    Array.from({ length: 15 }, (_, i) => {
+      const angle = from + ((to - from) * i) / 14
       return {
         t: i * FRAME_MS,
-        hands: [hand(0.5, 0.5, { tipX: 0.5 + Math.cos(angle) * SCALE, tipY: 0.5 + Math.sin(angle) * SCALE })],
+        hands: [hand(0.5, 0.5, { wristX: 0.5 - Math.cos(angle) * SCALE, wristY: 0.5 - Math.sin(angle) * SCALE, ...extra })],
       }
     })
+
+  it('reconnaît une main qui passe de horizontale à pointée vers le bas', () => {
+    const s = pivoting(0, Math.PI / 2)
+    expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(true)
+  })
+
+  it('ne dépend pas du majeur : il est replié quand seul l’index pointe', () => {
+    // Le bout du majeur reste collé à la paume, sans direction fiable.
+    const s = pivoting(0, Math.PI / 2, { tipX: 0.5, tipY: 0.5 })
+    expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(true)
+  })
+
+  it('reconnaît aussi un hochement plus court, depuis la diagonale', () => {
+    const s = pivoting(-Math.PI / 6, Math.PI / 2)
     expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(true)
   })
 
   it('ignore une main qui reste horizontale', () => {
-    const s: Sample[] = Array.from({ length: 15 }, (_, i) => ({
-      t: i * FRAME_MS,
-      hands: [hand(0.5, 0.5, { tipX: 0.5 + SCALE, tipY: 0.5 })],
-    }))
+    const s = pivoting(0, 0)
+    expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(false)
+  })
+
+  it('ignore une main qui se relève', () => {
+    const s = pivoting(Math.PI / 2, 0)
     expect(detectMotion(s, { kind: 'pivot-down' }, now(s))).toBe(false)
   })
 })
@@ -220,6 +298,42 @@ describe('trajectoires dessinées', () => {
     ])
     const s = track(userPath(circle, 0.4, [0.3, 0.3]))
     expect(detectMotion(s, { kind: 'path', path: 'z' }, now(s))).toBe(false)
+  })
+
+  it('reconnaît un Z dessiné avec le seul bout de l\'index, la paume presque immobile', () => {
+    // On dessine avec le doigt : la paume ne bouge presque pas, c'est le bout de l'index qui trace le Z.
+    const fingerPath = userPath(Z, 0.3, [0.3, 0.3])
+    const s: Sample[] = fingerPath.map(([x, y], i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5 + (i % 2) * 0.002, 0.6, { indexX: x, indexY: y })],
+    }))
+    expect(detectMotion(s, { kind: 'path', path: 'z' }, now(s))).toBe(true)
+  })
+
+  it('un Z dessiné au poignet, un peu plus petit, est accepté', () => {
+    // 0,9 fois la taille de la main : juste au-dessus du minimum.
+    const s = track(userPath(Z, 0.15 * 0.95, [0.4, 0.4]))
+    expect(detectMotion(s, { kind: 'path', path: 'z' }, now(s))).toBe(true)
+  })
+
+  it('suit le bout de l\'auriculaire pour le J', () => {
+    const J: [number, number][] = [
+      ...line([0.8, 0], [0.8, 0.6], 10),
+      ...line([0.8, 0.6], [0.5, 1], 6),
+      ...line([0.5, 1], [0.15, 0.65], 6),
+    ]
+    const traced = userPath(J, 0.3, [0.3, 0.3])
+    const s: Sample[] = traced.map(([x, y], i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5, 0.6, { pinkyX: x, pinkyY: y, indexX: 0.5, indexY: 0.4 })],
+    }))
+    expect(detectMotion(s, { kind: 'path', path: 'j' }, now(s))).toBe(true)
+    // Le même tracé fait avec l'index n'est pas un J.
+    const withIndex: Sample[] = traced.map(([x, y], i) => ({
+      t: i * FRAME_MS,
+      hands: [hand(0.5, 0.6, { indexX: x, indexY: y, pinkyX: 0.5, pinkyY: 0.6 })],
+    }))
+    expect(detectMotion(withIndex, { kind: 'path', path: 'j' }, now(withIndex))).toBe(false)
   })
 
   it('ignore un tracé trop petit pour la taille de la main', () => {

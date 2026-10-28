@@ -53,6 +53,7 @@ function shuffle<T>(items: T[]): T[] {
 function Photo({ sign }: { sign: Sign }) {
   if (sign.diagram) return <SignDiagram sign={sign} />
   if (sign.hands) return <HandIllustration sign={sign} />
+  if (sign.sprite) return <HandSprite sign={sign} file={sign.sprite} />
   if (HAND_SPRITES.has(sign.id)) return <HandSprite sign={sign} />
   return (
     <img
@@ -67,8 +68,12 @@ function Photo({ sign }: { sign: Sign }) {
 /** Les mots sont plus longs qu'une lettre : on réduit la taille d'affichage. */
 const signLabelClass = (sign: Sign) => (sign.label.length > 3 ? 'sign-label word' : 'sign-label')
 
+/** Message de la pause de 3 secondes après un changement de signe. */
+const prepareLine = (live: Live) => `Nouveau signe : prépare-toi… ${Math.ceil(live.graceLeft / 1000)}`
+
 function feedbackFor(live: Live, flash: boolean, detailed: boolean): string {
   if (flash) return 'Bravo !'
+  if (live.graceLeft > 0) return prepareLine(live)
   if (!live.hand) return 'Montre ta main devant la caméra.'
   const m = live.match
   if (!m) return ''
@@ -101,6 +106,8 @@ interface Props {
 
 export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   const signs = lesson.signs
+  // Un quiz peut tirer seulement quelques questions au hasard parmi tous les signes de la leçon.
+  const quizLength = lesson.quizSize ?? signs.length
   // Apprentissage : les lettres dans l'ordre, tour après tour, sans jamais répéter la même d'affilée.
   const learnSequence = useMemo(() => Array.from({ length: REPETITIONS }, () => signs).flat(), [signs])
 
@@ -172,12 +179,12 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   }
 
   const startQuiz = useCallback(() => {
-    setOrder(shuffle(signs))
+    setOrder(shuffle(signs).slice(0, quizLength))
     setQuestion(0)
     setHintLevel(0)
     setAnswers([])
     setPhase('quiz')
-  }, [signs])
+  }, [signs, quizLength])
 
   // Décompte 3, 2, 1, puis « QUIZZ ! » (count = 0) avant de lancer l'interro toute seule.
   useEffect(() => {
@@ -192,7 +199,9 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
   const feedback = current?.motion
     ? flash
       ? 'Bravo !'
-      : !current.move
+      : current.move && live.graceLeft > 0
+        ? prepareLine(live)
+        : !current.move
         ? 'Ce signe comporte un mouvement : la caméra ne peut pas le vérifier. Fais-le, puis valide.'
         : live.hand
           ? "Fais le geste, la caméra le suit (trait orange). Si elle ne le voit pas, clique sur « J'ai fait le signe »."
@@ -217,8 +226,10 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
           </Mascot>
           {lesson.quizOnly ? (
             <p>
-              Les {signs.length} signes dans le désordre, sans image : à toi de les retrouver. Si tu bloques, tu peux
-              demander un indice ou passer au suivant.
+              {quizLength < signs.length
+                ? `${quizLength} signes tirés au hasard parmi tous ceux que tu as vus, `
+                : `Les ${signs.length} signes dans le désordre, `}
+              sans image : à toi de les retrouver. Si tu bloques, tu peux demander un indice ou passer au suivant.
             </p>
           ) : (
             <ol>
@@ -229,6 +240,12 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               <li>Ensuite, une petite interro : on te donne un signe à retrouver, sans image.</li>
               <li>Si tu bloques, tu peux demander un indice.</li>
             </ol>
+          )}
+          {lesson.unverified && (
+            <p className="note">
+              Ces signes viennent d'une seule source et varient selon les régions : à confirmer avec une personne sourde
+              ou dans un dictionnaire de LSF. La caméra vérifie la forme de la main et un mouvement.
+            </p>
           )}
           <div className="actions center">
             <button type="button" className="primary" onClick={begin}>
@@ -317,7 +334,7 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               </div>
               <Mascot mood={count > 0 ? 'anxieux' : 'fier'}>
                 {count > 0
-                  ? `Respire, l'interro démarre : ${signs.length} signes dans le désordre, sans image !`
+                  ? `Respire, l'interro démarre : ${quizLength} signes dans le désordre, sans image !`
                   : 'Go ! Montre-moi ce que tu sais faire.'}
               </Mascot>
             </>

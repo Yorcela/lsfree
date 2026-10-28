@@ -16,6 +16,8 @@ const RELEASE_SCORE = 0.4
 const MOTION_COOLDOWN_MS = 1200
 /** Durée de la trajectoire dessinée à l'écran. */
 const TRAIL_MS = 1500
+/** Pause à chaque nouveau signe : le temps de voir la lettre et de changer de main, sans rien valider. */
+export const GRACE_MS = 3000
 
 export type Status = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -24,6 +26,8 @@ export interface Live {
   match: Match | null
   /** Dépliement de chaque doigt de la première main vue, même quand aucun signe n'est comparé. */
   values: FingerValues | null
+  /** Millisecondes restantes de la pause après un changement de signe (0 = la détection est active). */
+  graceLeft: number
 }
 
 /**
@@ -39,12 +43,13 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
   const goodFramesRef = useRef(0)
   const samplesRef = useRef<Sample[]>([])
   const lastMotionRef = useRef(0)
+  const graceUntilRef = useRef(0)
 
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState('')
   // Format réel de l'image de la caméra : la zone de la main l'épouse pour montrer toute la scène, sans rognage.
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-  const [live, setLive] = useState<Live>({ hand: false, match: null, values: null })
+  const [live, setLive] = useState<Live>({ hand: false, match: null, values: null, graceLeft: GRACE_MS })
 
   useEffect(() => {
     targetRef.current = target
@@ -58,6 +63,7 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
     goodFramesRef.current = 0
     samplesRef.current = []
     lastMotionRef.current = performance.now()
+    graceUntilRef.current = performance.now() + GRACE_MS
   }, [targetId])
 
   useEffect(() => {
@@ -112,6 +118,10 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
               samples.length = 0
             }
 
+            // Pause après un changement de signe : rien n'est validé, et les mouvements repartent de zéro.
+            const graceLeft = Math.max(0, graceUntilRef.current - now)
+            if (graceLeft > 0) samples.length = 0
+
             if (detected.length > 0) {
               const t = targetRef.current
               if (t) {
@@ -120,28 +130,34 @@ export function useHandTracking(enabled: boolean, target: Sign | null, onSuccess
                 if (t.move) {
                   drawTrail(ctx, samples, now, canvas.width, canvas.height)
                   const shapeOk = !match || match.score >= SUCCESS_SCORE
-                  if (shapeOk && now - lastMotionRef.current > MOTION_COOLDOWN_MS && detectMotion(samples, t.move, now)) {
+                  if (
+                    graceLeft === 0 &&
+                    shapeOk &&
+                    now - lastMotionRef.current > MOTION_COOLDOWN_MS &&
+                    detectMotion(samples, t.move, now)
+                  ) {
                     lastMotionRef.current = now
                     samples.length = 0
                     onSuccessRef.current()
                   }
                 } else if (match) {
                   if (match.score < RELEASE_SCORE) armedRef.current = true
-                  goodFramesRef.current = armedRef.current && match.score >= SUCCESS_SCORE ? goodFramesRef.current + 1 : 0
+                  const holding = armedRef.current && graceLeft === 0 && match.score >= SUCCESS_SCORE
+                  goodFramesRef.current = holding ? goodFramesRef.current + 1 : 0
                   if (goodFramesRef.current >= SUCCESS_FRAMES) {
                     armedRef.current = false
                     goodFramesRef.current = 0
                     onSuccessRef.current()
                   }
                 }
-                setLive({ hand: true, match, values: fingerValues(detected[0].shape) })
+                setLive({ hand: true, match, values: fingerValues(detected[0].shape), graceLeft })
               } else {
-                setLive({ hand: true, match: null, values: fingerValues(detected[0].shape) })
+                setLive({ hand: true, match: null, values: fingerValues(detected[0].shape), graceLeft })
               }
             } else {
               armedRef.current = true
               goodFramesRef.current = 0
-              setLive({ hand: false, match: null, values: null })
+              setLive({ hand: false, match: null, values: null, graceLeft })
             }
           }
           frame = requestAnimationFrame(loop)

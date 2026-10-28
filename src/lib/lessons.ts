@@ -1,4 +1,4 @@
-import { ALPHABET, CONSONANTS, DIGITS, NUMBERS, VOWELS, type Sign } from './signs'
+import { ALPHABET, BIG_NUMBERS, CONSONANTS, DIGITS, NUMBERS, TENS, TWENTY, VOWELS, type Sign } from './signs'
 import { GREETINGS, ME } from './words'
 
 export interface Lesson {
@@ -10,25 +10,41 @@ export interface Lesson {
   quizOnly?: boolean
   /** Leçons à terminer (au moins une étoile chacune) avant de pouvoir commencer celle-ci. */
   requires?: string[]
+  /** Pour un quiz : nombre de questions tirées au hasard parmi les signes (tous si absent). */
+  quizSize?: number
+  /** Signes tirés d'une seule source, qui varient selon les régions : à confirmer. */
+  unverified?: boolean
 }
 
 function pick(ids: string): Sign[] {
   return ids.split(' ').map((id) => CONSONANTS.find((s) => s.id === id)!)
 }
 
-function lesson(id: string, title: string, signs: Sign[]): Lesson {
-  return { id, title, subtitle: signs.map((s) => s.label).join(' '), signs }
+function lesson(id: string, title: string, signs: Sign[], extra: Partial<Lesson> = {}): Lesson {
+  return { id, title, subtitle: signs.map((s) => s.label).join(' '), signs, ...extra }
 }
 
 const slice = (signs: Sign[], from: number, to: number) => signs.slice(from, to)
 
 /** Leçons des chiffres et des nombres, dans l'ordre conseillé. */
 export const NUMBER_LESSONS: Lesson[] = [
-  lesson('chiffres-0-5', 'Chiffres de 0 à 5', slice(DIGITS, 0, 6)),
-  lesson('chiffres-6-9', 'Chiffres de 6 à 9', slice(DIGITS, 6, 10)),
-  lesson('nombres-10-15', 'Nombres de 10 à 15', slice(NUMBERS, 0, 6)),
-  lesson('nombres-16-19', 'Nombres de 16 à 19', slice(NUMBERS, 6, 10)),
+  lesson('nombres-0-10', 'Nombres de 0 à 10', [...DIGITS, ...slice(NUMBERS, 0, 1)]),
+  lesson('nombres-11-20', 'Nombres de 11 à 20', [...slice(NUMBERS, 1, 10), TWENTY]),
+  lesson('dizaines', 'Les dizaines, de 30 à 100', TENS, { unverified: true }),
+  lesson('grands-nombres', 'Mille, million…', BIG_NUMBERS, { unverified: true }),
 ]
+
+/** Le quiz des nombres : 10 nombres tirés au hasard parmi tous ceux qui ont été vus, débloqué quand chaque séance a une étoile. */
+export const NUMBER_QUIZ: Lesson = {
+  id: 'nombres-quiz',
+  title: 'Quiz des nombres',
+  subtitle: '10 au hasard',
+  signs: NUMBER_LESSONS.flatMap((l) => l.signs),
+  quizOnly: true,
+  quizSize: 10,
+  requires: NUMBER_LESSONS.map((l) => l.id),
+  unverified: true,
+}
 
 /** Lettres du prénom, sans accents ni doublons : chaque lettre n'est épelée qu'une fois dans la leçon. */
 export function nameLetters(name: string): Sign[] {

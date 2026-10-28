@@ -14,11 +14,18 @@ export type Orientation = 'up' | 'side' | 'down'
 
 const WRIST = 0
 const THUMB_TIP = 4
-const INDEX_MCP = 5
+/** Repères de la paume : poignet et base des quatre doigts. Leur moyenne donne le centre de la paume. */
+const PALM = [0, 5, 9, 13, 17]
 const INDEX_TIP = 8
 const MIDDLE_MCP = 9
 const MIDDLE_TIP = 12
-const FINGER_TIPS = [8, 12, 16, 20]
+/** Les quatre doigts, de la base (MCP) au bout : index, majeur, annulaire, auriculaire. */
+const FINGER_CHAINS = [
+  [5, 6, 7, 8],
+  [9, 10, 11, 12],
+  [13, 14, 15, 16],
+  [17, 18, 19, 20],
+]
 
 export function normalize(landmarks: Point[], handedness: 'Left' | 'Right'): HandShape {
   const wrist = landmarks[WRIST]
@@ -35,10 +42,26 @@ export function normalize(landmarks: Point[], handedness: 'Left' | 'Right'): Han
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
+function palmCenter(shape: HandShape): Point {
+  const sum = PALM.reduce((s, i) => ({ x: s.x + shape[i].x, y: s.y + shape[i].y, z: s.z + shape[i].z }), { x: 0, y: 0, z: 0 })
+  return { x: sum.x / PALM.length, y: sum.y / PALM.length, z: sum.z / PALM.length }
+}
+
+/**
+ * Rectitude d'un doigt : distance base → bout divisée par la longueur de ses trois os. Un doigt tendu vaut environ 1,
+ * un doigt replié nettement moins, et la mesure est la même pour l'auriculaire (court) que pour le majeur (long).
+ */
+function straightness(shape: HandShape, chain: number[]): number {
+  const [mcp, pip, dip, tip] = chain
+  const length = dist(shape[mcp], shape[pip]) + dist(shape[pip], shape[dip]) + dist(shape[dip], shape[tip])
+  return length > 0 ? dist(shape[mcp], shape[tip]) / length : 0
+}
+
 export function fingerValues(shape: HandShape): FingerValues {
-  // Pouce : écart entre son bout et la base de l'index. Autres doigts : distance bout → poignet.
-  const thumb = clamp01((dist(shape[THUMB_TIP], shape[INDEX_MCP]) - 0.35) / 0.45)
-  const others = FINGER_TIPS.map((tip) => clamp01((dist(shape[tip], shape[WRIST]) - 1.0) / 0.8))
+  // Pouce : éloignement de son bout par rapport au centre de la paume (replié en travers de la paume = proche,
+  // quel que soit l'angle de la main). Autres doigts : rectitude, de 0,5 (replié) à 0,95 (tendu).
+  const thumb = clamp01((dist(shape[THUMB_TIP], palmCenter(shape)) - 0.45) / 0.5)
+  const others = FINGER_CHAINS.map((chain) => clamp01((straightness(shape, chain) - 0.5) / 0.45))
   return [thumb, others[0], others[1], others[2], others[3]]
 }
 

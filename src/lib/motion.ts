@@ -2,7 +2,7 @@ import type { Point } from './landmarks'
 
 /** Mouvement attendu pour un signe. */
 export type MotionSpec =
-  | { kind: 'up' | 'down' | 'slide-down' | 'together' | 'pivot-down' | 'forward' | 'wave' }
+  | { kind: 'up' | 'down' | 'slide-down' | 'together' | 'tap-twice' | 'pivot-down' | 'forward' | 'wave' | 'any' }
   | { kind: 'path'; path: 'z' | 'j' }
 
 /** Repères d'une main sur une image, en coordonnées de l'image (0 à 1, non retournées). */
@@ -15,6 +15,15 @@ export interface HandPoint {
   /** Bout du majeur. */
   tipX: number
   tipY: number
+  /** Poignet : avec la paume, il donne l'axe de la main, même quand les doigts sont repliés. */
+  wristX: number
+  wristY: number
+  /** Bout de l'index (le Z se dessine avec lui). */
+  indexX: number
+  indexY: number
+  /** Bout de l'auriculaire (le J se dessine avec lui). */
+  pinkyX: number
+  pinkyY: number
 }
 
 export interface Sample {
@@ -23,18 +32,26 @@ export interface Sample {
 }
 
 /** Durée de trajectoire gardée en mémoire. */
-export const WINDOW_MS = 2000
+export const WINDOW_MS = 2500
 
 export function toHandPoint(landmarks: Point[]): HandPoint {
   const palm = landmarks[9]
   const wrist = landmarks[0]
   const tip = landmarks[12]
+  const index = landmarks[8]
+  const pinky = landmarks[20]
   return {
     x: palm.x,
     y: palm.y,
     scale: Math.hypot(palm.x - wrist.x, palm.y - wrist.y) || 0.05,
     tipX: tip.x,
     tipY: tip.y,
+    wristX: wrist.x,
+    wristY: wrist.y,
+    indexX: index.x,
+    indexY: index.y,
+    pinkyX: pinky.x,
+    pinkyY: pinky.y,
   }
 }
 
@@ -68,7 +85,7 @@ const TEMPLATES: Record<'z' | 'j', P[]> = {
 
 const PATH_POINTS = 32
 /** Écart moyen maximal (dans un carré de côté 1) entre la trajectoire et le modèle. */
-const PATH_MAX_DISTANCE = 0.22
+const PATH_MAX_DISTANCE = 0.26
 
 function pathLength(points: P[]): number {
   let total = 0
@@ -122,7 +139,12 @@ function detectPath(samples: Sample[], path: 'z' | 'j'): boolean {
   const usable = samples.filter((s) => s.hands.length >= 1)
   if (usable.length < 12) return false
   // L'image de la caméra est un miroir de ce que voit l'élève : on retourne l'axe horizontal.
-  const points = usable.map((s) => ({ x: 1 - s.hands[0].x, y: s.hands[0].y }))
+  // On suit le bout du doigt qui dessine : l'index pour le Z, l'auriculaire pour le J (il suit aussi la main entière).
+  const tip = (h: HandPoint) => (path === 'z' ? { x: h.indexX, y: h.indexY } : { x: h.pinkyX, y: h.pinkyY })
+  const points = usable.map((s) => {
+    const p = tip(s.hands[0])
+    return { x: 1 - p.x, y: p.y }
+  })
   const scale = mean(usable.map((s) => s.hands[0].scale))
 
   // La trajectoire peut commencer avant le geste : on essaie plusieurs départs, jusqu'à la dernière image.
@@ -134,10 +156,33 @@ function detectPath(samples: Sample[], path: 'z' | 'j'): boolean {
     const width = Math.max(...xs) - Math.min(...xs)
     const height = Math.max(...ys) - Math.min(...ys)
     // Le geste doit être ample par rapport à la taille de la main.
-    if (height < 1.2 * scale || (path === 'z' && width < 1.2 * scale)) continue
+    if (height < 0.9 * scale || (path === 'z' && width < 0.9 * scale)) continue
     if (pathDistance(window, path) <= PATH_MAX_DISTANCE) return true
   }
   return false
+}
+
+/**
+ * Nombre de fois où les deux mains se sont rapprochées l'une de l'autre : elles sont écartées (au moins une fois et
+ * demie la taille d'une main), puis se touchent presque. Chaque rapprochement, suivi d'un écart, en compte un.
+ */
+export function countApproaches(samples: Sample[]): number {
+  const s = samples.filter((x) => x.hands.length === 2)
+  if (s.length < MIN_SAMPLES) return 0
+  const scale = mean(s.map((x) => mean(x.hands.map((h) => h.scale))))
+  const gaps = s.map((x) => Math.hypot(x.hands[0].x - x.hands[1].x, x.hands[0].y - x.hands[1].y))
+  const apart = 1.5 * scale
+  const near = 0.8 * scale
+  let count = 0
+  let state: 'unknown' | 'apart' | 'near' = 'unknown'
+  for (const gap of gaps) {
+    if (gap >= apart) state = 'apart'
+    else if (gap <= near && state === 'apart') {
+      count++
+      state = 'near'
+    }
+  }
+  return count
 }
 
 /** Dit si le mouvement demandé vient d'être exécuté, d'après les dernières images. `now` est l'heure courante en ms. */
@@ -166,30 +211,39 @@ export function detectMotion(samples: Sample[], spec: MotionSpec, now: number): 
       return false
     }
 
-    case 'together': {
-      const s = recent(1200).filter((x) => x.hands.length === 2)
+    case 'together':
+      return countApproaches(recent(1200)) >= 1
+
+    case 'tap-twice':
+      return countApproaches(recent(2500)) >= 2
+
+    case 'any': {
+      // Un signe dont la trajectoire exacte n'est pas connue : un déplacement net de la main suffit.
+      const s = recent(1000).filter((x) => x.hands.length >= 1)
       if (s.length < MIN_SAMPLES) return false
-      const gaps = s.map((x) => Math.hypot(x.hands[0].x - x.hands[1].x, x.hands[0].y - x.hands[1].y))
-      const scale = mean(s.map((x) => mean(x.hands.map((h) => h.scale))))
-      let widest = gaps[0]
-      for (let j = 1; j < gaps.length; j++) {
-        if (widest >= 1.5 * scale && gaps[j] <= 0.6 * widest) return true
-        widest = Math.max(widest, gaps[j])
+      const scales = s.map((x) => x.hands[0].scale)
+      const scale = mean(scales)
+      let farthest = 0
+      for (const a of s) {
+        for (const b of s) {
+          farthest = Math.max(farthest, Math.hypot(a.hands[0].x - b.hands[0].x, a.hands[0].y - b.hands[0].y))
+        }
       }
-      return false
+      return farthest >= 0.5 * scale || Math.max(...scales) / Math.min(...scales) >= 1.2
     }
 
     case 'pivot-down': {
-      const s = recent(1200).filter((x) => x.hands.length >= 1)
+      const s = recent(1500).filter((x) => x.hands.length >= 1)
       if (s.length < MIN_SAMPLES) return false
-      // Direction des doigts : 1 = vers le haut, -1 = vers le bas.
+      // Axe de la main, du poignet vers la paume : 1 = vers le haut, -1 = vers le bas. On n'utilise pas le bout du
+      // majeur, car il est replié quand seul l'index pointe.
       const upness = s.map((x) => {
         const h = x.hands[0]
-        return -(h.tipY - h.y) / (Math.hypot(h.tipX - h.x, h.tipY - h.y) || 1)
+        return -(h.y - h.wristY) / (Math.hypot(h.x - h.wristX, h.y - h.wristY) || 1)
       })
       let highest = upness[0]
       for (let j = 1; j < upness.length; j++) {
-        if (highest - upness[j] >= 0.7 && upness[j] <= -0.3) return true
+        if (highest - upness[j] >= 0.6 && upness[j] <= -0.25) return true
         highest = Math.max(highest, upness[j])
       }
       return false
