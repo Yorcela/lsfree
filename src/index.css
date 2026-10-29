@@ -925,12 +925,6 @@ button.lesson-card.locked {
   align-self: stretch;
 }
 
-@media (max-width: 560px) {
-  .holo-row {
-    grid-template-columns: 1fr;
-  }
-}
-
 .debug {
   display: flex;
   flex-direction: column;
@@ -1131,4 +1125,90 @@ button.lesson-card.locked {
 
 .credits a {
   color: var(--cyan);
+}
+
+/* La lettre à faire, affichée sur l'hologramme : visible même si l'écran est trop petit pour tout montrer. */
+.hand-letter {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  z-index: 2;
+  color: #fff;
+  font-size: clamp(30px, 7vw, 46px);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(61, 230, 255, 0.9), 0 0 26px rgba(61, 230, 255, 0.5);
+  pointer-events: none;
+}
+
+.hand-letter.word {
+  font-size: clamp(16px, 4.2vw, 24px);
+  letter-spacing: 0.04em;
+}
+
+/*
+ * Téléphone : on veut voir en même temps la lettre, l'hologramme et les pourcentages des doigts. L'image de la
+ * caméra y est verticale (720 × 1280) : sans limite, l'hologramme remplirait tout l'écran. On le limite à environ
+ * 42 % de la hauteur et on met les pourcentages à sa droite, en plus compact.
+ */
+@media (max-width: 760px) {
+  .card {
+    padding: 14px;
+  }
+
+  .holo-row {
+    grid-template-columns: minmax(0, 1.3fr) minmax(124px, 0.8fr);
+    gap: 8px;
+  }
+
+  .holo-row .hand-wrap {
+    width: min(100%, calc(42vh * var(--aspect, 1.3333)));
+    width: min(100%, calc(42svh * var(--aspect, 1.3333)));
+    justify-self: center;
+  }
+
+  .debug {
+    gap: 4px;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  .debug-title {
+    padding-bottom: 4px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .debug-meta {
+    display: none;
+  }
+
+  .debug-row .meter {
+    height: 7px;
+    margin-top: 1px;
+  }
+
+  .feedback {
+    min-height: 2.6em;
+    margin: 8px 0;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  /* La fiche du signe se resserre pour laisser de la place à l'écran de la main. */
+  .sign-label {
+    font-size: 72px;
+  }
+
+  .sprite-img {
+    height: 140px;
+  }
+
+  .mascot-img {
+    height: 84px;
+  }
+
+  .mascot-diagram {
+    height: 190px;
+  }
 }

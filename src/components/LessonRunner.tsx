@@ -392,6 +392,12 @@ export function LessonRunner({ lesson, onExit, onFinished }: Props) {
               <canvas ref={canvasRef} />
               <div className="scanlines" />
               <Projector />
+              {/* La lettre reste visible sur l'hologramme, même quand l'écran est trop petit pour tout montrer. */}
+              {current && (
+                <div className={current.label.length > 3 ? 'hand-letter word' : 'hand-letter'} aria-hidden="true">
+                  {current.label}
+                </div>
+              )}
               {status === 'loading' && <div className="overlay">Chargement du suivi de la main…</div>}
               {status === 'error' && <div className="overlay error">Caméra indisponible : {error}</div>}
             </div>
